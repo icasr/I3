@@ -59,7 +59,7 @@ An App that runs within a Docker container, accepts input file (`input.json`) an
   ],
   "worker": {
     "type": "docker",
-    "container": "acme/docker-image"
+    "container": "acme/docker-image",
     "mount": "/app"
   },
   "outputs": [

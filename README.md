@@ -40,7 +40,14 @@ Example
     "node": ">=6.0.0"
   },
   "settings": [
-  ]
+    "operation": {
+      "type": "choice",
+      "options": [
+	{"id": "mark", "title": "Mark duplicates in LABEL field"},
+	{"id": "delete", "title": "Delete duplicates"}
+      ]
+    },
+  ],
   "inputs": [
     {
       "type": "citations",
