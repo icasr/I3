@@ -9,7 +9,7 @@ Each tool conforming to the ICASR standard should include a manifest file within
 
 The manifest file is a JSON compatible file published within the root of the projects repository. Its layout it roughly equivalent to the [NPM package.json](https://docs.npmjs.com/files/package.json) format with some additional fields.
 
-The Manifest is located by checking for the following file names in order: `package.json` (as an extension of an NPM package.json format), `manifest.json`, `icasr.json`.
+The Manifest is located by checking for the following file names in order: `icasr.json`, `manifest.json`, `package.json` (as an extension of an NPM package.json format).
 
 
 Example
