@@ -9,7 +9,7 @@ Each tool conforming to the ICASR standard should include a manifest file within
 
 The manifest file is a JSON compatible file published within the root of the projects repository. Its layout it roughly equivalent to the [NPM package.json](https://docs.npmjs.com/files/package.json) format with some additional fields.
 
-The Manifest is located by checking for the following file names in order: `icasr.json`, `manifest.json`, `package.json` (as an extension of an NPM package.json format).
+The manifest is located by checking for the following file names in order: `icasr.json`, `manifest.json`, `package.json` (as an extension of an NPM package.json format).
 
 
 Example
@@ -39,15 +39,15 @@ Example
   "engines": {
     "node": ">=6.0.0"
   },
-  "settings": [
+  "settings": {
     "operation": {
       "type": "choice",
       "options": [
-	{"id": "mark", "title": "Mark duplicates in LABEL field"},
+	{"id": "mark", "title": "Mark duplicates in the \"label\" field"},
 	{"id": "delete", "title": "Delete duplicates"}
       ]
     },
-  ],
+  },
   "inputs": [
     {
       "type": "citations",
@@ -69,6 +69,8 @@ Example
   ],
 }
 ```
+
+See the [scenarios documentation](./scenarios.md) for more manifest examples.
 
 
 Manifest specification
@@ -125,7 +127,7 @@ Settings
 The `settings` key can be one of the following value types:
 
 1. **Local HTML file** - If the value is a string and begins with `./` settings are treated as a repository-local HTML file to be displayed to the user. Submitting the HTML form will confirm the settings
-2. **Remote HTML file** - If the value is a string ane begins with `http://` or `https://` the HTML file is retrieved from the remote server and treated the same as a local HTML file
+2. **Remote HTML file** - If the value is a string and begins with `http://` or `https://` the HTML file is retrieved from the remote server and treated the same as a local HTML file
 3. **MacGyver form spec** - If the value is an object it is treated as a [MacGyver form](https://github.com/MomsFriendlyDevCo/macgyver)
 
 
