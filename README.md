@@ -90,7 +90,7 @@ Manifest specification
 | `bugs.url`            | `string`         | URL                         | The URL to report bugs                                                                                                                                   |
 | `homepage`            | `string`         | URL                         | The URL to the app homepage or other information                                                                                                         |
 | `engines`             | `object`         |                             | Details about the execution environment the App needs to run under. These take the form of the execution context and SemVer version                      |
-| `settings`            | `array`          |                             | Array of input settings to display to the user when queuing up the app for execution                                                                     |
+| `settings`            | `string` or `object` | Relative path or URL    | Input settings to display to the user when queuing up the app for execution                                                                              |
 | `inputs`              | `array`          |                             | Array of valid input formats the app accepts                                                                                                             |
 | `inputs.[].accepts`   | `array <string>` | Array of globs              | If `(input.type == 'other')` this is an array of acceptable file globs                                                                                   |
 | `inputs.[].filename`  | `string`         |                             | The single filename to store the input as (if `worker.type == 'docker'`)                                                                                 |
@@ -114,8 +114,20 @@ Manifest specification
 
 * Any URL type can also accept [ES2015 template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals) `server`, `port` (e.g. `http://${server}:${port}/api/endpoint`)
 * If `worker.ui` has a value, the worker is initialized and the user redirected to the UI to interact with the worker. `outputs` specifies how the finished data is returned to the system for processing when this stage completes
+* When `input.type == 'other'` and `input.filename` is specified whatever file is taken as input is renamed to `input.filename` automatically
+* `settings` can be either a relative path to a local file (must begin with `./`), a URL to a HTML file or an Object of settings to display to the user when setting up the App.
 
 See the [scenarios documentation](./scenarios.md) for implementation examples.
+
+
+Settings
+--------
+The `settings` key can be one of the following value types:
+
+1. **Local HTML file** - If the value is a string and begins with `./` settings are treated as a repository-local HTML file to be displayed to the user. Submitting the HTML form will confirm the settings
+2. **Remote HTML file** - If the value is a string ane begins with `http://` or `https://` the HTML file is retrieved from the remote server and treated the same as a local HTML file
+3. **MacGyver form spec** - If the value is an object it is treated as a [MacGyver form](https://github.com/MomsFriendlyDevCo/macgyver)
+
 
 
 Oversight implementation
