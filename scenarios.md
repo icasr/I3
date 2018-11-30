@@ -112,6 +112,43 @@ An app that runs a web facing interface, accepts a CSV POSTed to a URL, works wi
 ```
 
 
+Accept a RevMan file output a graph
+-----------------------------------
+In addition to citation libraries, other formats can also be used as input / output.
+The below demonstrates taking a RevMan file and outputting a computed graphic.
+
+```json
+{
+  "name": "icasr-app-example-revman-graph",
+  "version": "0.0.0",
+  "description": "Simple example of a Docker worker which accepts a RevMan file and outputs an graphic",
+  "main": "index.js",
+  "license": "MIT",
+  "engines": {
+    "node": ">=10.0.0"
+  },
+  "inputs": [
+    {
+      "type": "other",
+      "accepts": ["*.rm5"],
+      "filename": "input.rm5"
+    }
+  ],
+  "worker": {
+    "type": "docker",
+    "container": "acme/docker-image",
+    "mount": "/app"
+  },
+  "outputs": [
+    {
+      "type": "other",
+      "filename": "graphic.png"
+    }
+  ],
+}
+```
+
+
 Manual processing
 -----------------
 An app that provides no automated method to accept input or output.
