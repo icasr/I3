@@ -110,3 +110,38 @@ An app that runs a web facing interface, accepts a CSV POSTed to a URL, works wi
   ],
 }
 ```
+
+
+Manual processing
+-----------------
+An app that provides no automated method to accept input or output.
+While at first glance this may seem useless, the oversight process can still spawn and manage the tool while its running - even though it has no automated way to recieve data.
+
+
+```json
+{
+  "name": "icasr-app-example-manual",
+  "version": "0.0.0",
+  "description": "Example of an entirely manual process which uses Docker to host it",
+  "main": "index.js",
+  "license": "MIT",
+  "engines": {
+    "node": ">=10.0.0"
+  },
+  "inputs": [
+    {
+      "type": "manual"
+    }
+  ],
+  "worker": {
+    "type": "docker",
+    "container": "acme/docker-image",
+    "ui": "http://${server}:${port}/legacy-tool"
+  },
+  "outputs": [
+    {
+      "type": "manual"
+    }
+  ],
+}
+```
