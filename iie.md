@@ -20,4 +20,5 @@ The lifecycle of an App is as follows:
 FIXME: The above needs heavy work, a flow diagram and pseudo-code
 
 
+---
 [Back to contents](./README.md)

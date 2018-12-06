@@ -126,4 +126,5 @@ The `settings` key can be one of the following value types:
 3. **MacGyver form spec** - If the value is an object it is treated as a [MacGyver form](https://github.com/MomsFriendlyDevCo/macgyver)
 
 
+---
 [Back to contents](./README.md)
