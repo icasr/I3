@@ -1,5 +1,5 @@
-Scenarios
-=========
+Manifest Scenarios & Examples
+=============================
 
 
 Web-server API
@@ -182,3 +182,5 @@ While at first glance this may seem useless, the oversight process can still spa
   ],
 }
 ```
+
+[Back to contents](./README.md)
