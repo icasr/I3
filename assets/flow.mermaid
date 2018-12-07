@@ -1,0 +1,54 @@
+graph TD
+subgraph Phase 1 - Bootstrap
+	P1-0(Accept inputs: 'worker', 'inputs', 'outputs')
+	P1-0 --> P1-1
+	P1-1(Obtain worker manifest specification from repository)
+	P1-1 --> P1-2
+	P1-2(Validate that `inputs`, `outputs` are supported by worker or that a compatible converter is available)
+	P1-2 --> P1-3
+	P1-3(Create a workspace for the worker)
+end
+
+P1-3 --> P2-0
+
+subgraph Phase 2 - Input file conversion
+	subgraph for each input file
+		P2-0(Convert file to worker specified input format)
+		P2-0 --> P2-1
+		P2-1(Save file into workspace)
+	end
+end
+
+P2-1 --> P3-0
+
+subgraph Phase 3 - Worker execution
+	P3-0{Type of worker}
+
+	P3-0 -- Docker --> W-D-0
+	W-D-0(Download and build the docker image)
+	W-D-0 --> W-D-1
+	W-D-1(Execute the Docker worker passing parameters)
+	W-D-1-->W-D-2
+	W-D-2(Wait for worker to terminate)
+	W-D-2 --> P4-0
+
+	P3-0 -- External URL --> W-U-0
+	W-U-0(Forward input files to URL)
+	W-U-0-->W-U-1
+	W-U-1(Wait remote server to respond)
+	W-U-1 --> P4-0
+
+	P3-0 -- Manual --> W-M-0
+	W-M-0(Provide input files to user)
+	W-M-0-->W-M-1
+	W-M-1(User interacts with manual process)
+	W-M-1 --> P4-0
+end
+
+subgraph Phase 4 - Output file conversion
+	subgraph for each output file
+		P4-0(Accecpt file into workspace)
+		P4-0 --> P4-1
+		P4-1(Convert file to required output format)
+	end
+end
