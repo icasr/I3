@@ -1,6 +1,7 @@
 IIE Roadmap
 ===========
 This section details the development process for the IIE project.
+It is understood that the IIE proof-of-concept is likely to take many iterations to perfect with the refinements to the manifest, worker layout and other tooling to change along the way.
 
 
 Creation of CLI proof-of-concept

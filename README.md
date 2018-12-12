@@ -1,6 +1,10 @@
-ICASR Integration Engine
-========================
+ICASR Integration Engine Whitepaper
+===================================
 The ICASR Integration Engine (IIE) is both a standard to define how individual Systematic Review Apps interact and a proof-of-concept implementation.
+
+The IIE represents an attempt to define the integration between different Systematic Review apps with an aim to entirely automating the communication between these individual stages. 
+
+
 
 Contents:
 
