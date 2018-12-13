@@ -19,6 +19,7 @@ The next stage is using the CLI tool to run though a set scenario and testing th
 A proposed scenario would be as follows:
 
 | # | Scenario                                           | Tool                                                | Test purpose                                 | Input       | Output                           |
+|---|----------------------------------------------------|-----------------------------------------------------|----------------------------------------------|-------------|----------------------------------|
 | 1 | Deduplication                                      | [CREBP-Dedupe](https://github.com/CREBP/sra-dedupe) | Command line streaming as a block library    | EndNote XML | Deduplicated library, duplicates |
 | 2 | Spider references by one generation forward / back | [CREBP-Spider](https://github.com/CREBP/sra-spider) | Command line streaming individual references | EndNote XML | Original + Spidered references   |
 | 3 | Screen the references                              | [Abstrackr](http://abstrackr.cebm.brown.edu)        | Support for legacy, self hosted tools        | CSV         | Partial CSV data                 |
