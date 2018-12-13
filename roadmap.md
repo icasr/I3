@@ -35,7 +35,7 @@ A proposed scenario would be as follows:
 
 The following is an example of the above process using the CLI. Since this tool is still in development the below is conceptual only but provides some insight into how the IIE implementation would work:
 
-We assumes that a workspace already exists with `input-library.xml`.
+We assume that a workspace already exists with `input-library.xml`.
 
 
 ```
