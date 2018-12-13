@@ -28,6 +28,7 @@ A proposed scenario would be as follows:
 **Notes:**
 
 * Abstrackr accepts an abbreviated CSV file (`title, abstract`) and returns the same data back with a score field added. It will be the job of the IIE process to link this partial data back to the original record
+* The deduping library would output two files - a deduplicated library and a second (optional) output of the found duplicates
 
 
 **Example CLI usage**:
@@ -52,6 +53,7 @@ iie --input spidered.csv --output screened.xml --action brown/abstrackr
 
 * The long form options (e.g. `--input`) are used in the above for readability, short form options (`--input` or `-i`) would be available also
 * The named action (e.g. `--action crebp/dedupe`) corresponds to a registered Docker image which would contain a [manifest](./manifest.md) indicating how the container should be built and input/output processed
+* As the deduplication step provides two outputs the `--output` argument specifies two output filenames
 
 
 Integration with a UI
