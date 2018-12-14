@@ -1,0 +1,29 @@
+{
+  "name": "iee",
+  "version": "0.0.0",
+  "description": "ICASR Integration Engine",
+  "main": "index.js",
+  "bin": {
+    "ruget": "./app.js"
+  },
+  "preferGlobal": true,
+  "keywords": [
+    "icasr",
+    "iee"
+  ],
+  "author": "Matt Carter <m@ttcarter.com>",
+  "license": "GPLv2",
+  "dependencies": {
+    "chalk": "^2.4.1",
+    "commander": "^2.19.0",
+    "debug": "^4.1.0",
+    "lodash": "^4.17.11",
+    "micromatch": "^3.1.10",
+    "reflib": "^1.6.0",
+    "temp": "^0.8.3"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^5.2.0"
+  }
+}
