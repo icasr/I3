@@ -1,0 +1,36 @@
+{
+  "name": "crebp-iie-passthru",
+  "version": "0.0.0",
+  "description": "Simple IIE passthru App",
+  "main": "index.js",
+  "keywords": [
+    "icasr",
+    "iie"
+  ],
+  "author": "Matt Carter <m@ttcarter.com>",
+  "license": "GPLv2",
+  "inputs": [
+    {
+      "type": "citations",
+      "format": "json",
+      "filename": "input.json"
+    }
+  ],
+  "worker": {
+    "type": "docker",
+    "container": "crebp/passthru",
+    "mount": "/app"
+  },
+  "outputs": [
+    {
+      "type": "citations",
+      "format": "json",
+      "filename": "output.json"
+    }
+  ],
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^5.2.0",
+    "temp": "^0.8.3"
+  }
+}
