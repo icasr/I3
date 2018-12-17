@@ -20,6 +20,7 @@ program
 	.option('-a, --action <name>', 'The action to perform. Can be a URL or a short name to an already retreieved I3 worker')
 	.option('-v, --verbose', 'Be verbose - use multiple to increase verbosity', (v, total) => total + 1, 0)
 	.option('-s, --setting [key=val]', 'Set an option for the worker', (v, total) => { total.push(v); return total }, [])
+	.option('--no-build', 'Skip the rebuild of the Docker container')
 	.parse(process.argv);
 
 
@@ -137,8 +138,24 @@ Promise.resolve()
 		})).then(()=> session)
 	)
 	// }}}
+	// Build the worker {{{
+	.then(session => new Promise((resolve, reject) => {
+		if (!program.build) {
+			if (program.verbose) console.log(`Skipping Docker build of container "${session.manifest.worker.container}"`);
+			return resolve();
+		}
+
+		process.chdir(session.worker.path);
+
+		if (program.verbose) console.log(`Building Docker container "${session.manifest.worker.container}"`);
+		var ps = spawn('docker', ['build', `--tag=${session.manifest.worker.container}`, '.'], {stdio: 'inherit'});
+		ps.on('close', code => {
+			if (code != 0) return reject(`Docker-build exited with non-zero exit code: ${code}`);
+			resolve(session);
+		});
+	}))
+	// }}}
 	// Run the worker {{{
-	// FIXME: We assume the docker image already exists - needs to be built if out of date
 	.then(session => new Promise((resolve, reject) => {
 		session.docker = {
 			args: _([
@@ -156,7 +173,7 @@ Promise.resolve()
 		var ps = spawn('docker', session.docker.args, {stdio: 'inherit'});
 
 		ps.on('close', code => {
-			if (code != 0) return reject(`Docker exited with non-zero exit code: ${code}`);
+			if (code != 0) return reject(`Docker-run exited with non-zero exit code: ${code}`);
 			resolve(session);
 		});
 	}))
