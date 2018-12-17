@@ -19,8 +19,14 @@ program
 	.option('-o, --output <file>', 'Output file, use multiple times for more file outputs', (v, total) => { total.push(v); return total }, [])
 	.option('-a, --action <name>', 'The action to perform. Can be a URL or a short name to an already retreieved I3 worker')
 	.option('-v, --verbose', 'Be verbose - use multiple to increase verbosity', (v, total) => total + 1, 0)
-	.option('-s, --setting [key=val]', 'Set an option for the worker', (v, total) => { total.push(v); return total }, [])
+	.option('-s, --setting <key=val>', 'Set an option for the worker (dotted notation supported)', (v, total) => {
+		var bits = v.split(/\s*=\s*/, 2);
+		if (!bits.length == 2) throw `Failed to parse setting "${v}"`;
+		_.set(total, bits[0], bits[1]);
+		return total
+	}, {input: {}, output: {}})
 	.option('--no-build', 'Skip the rebuild of the Docker container')
+	.option('--no-merge', 'Skip trying to remerge the data back into the input set, use as is')
 	.parse(process.argv);
 
 
@@ -123,7 +129,7 @@ Promise.resolve()
 			switch (session.input.type) {
 				case 'citations':
 					if (program.verbose) console.log(`Converting input citation library "${src}" -> "${dst}"`);
-					return reflib.promises.parseFile(src) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
+					return reflib.promises.parseFile(src, program.setting.input) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
 						.then(refs => reflib.promises.outputFile(dst, refs));
 					break;
 				case 'other':
@@ -142,7 +148,7 @@ Promise.resolve()
 	.then(session => new Promise((resolve, reject) => {
 		if (!program.build) {
 			if (program.verbose) console.log(`Skipping Docker build of container "${session.manifest.worker.container}"`);
-			return resolve();
+			return resolve(session);
 		}
 
 		process.chdir(session.worker.path);
@@ -187,7 +193,7 @@ Promise.resolve()
 				case 'citations':
 					if (program.verbose) console.log(`Converting output citation library "${src}" -> "${dst}"`);
 					return reflib.promises.parseFile(src) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
-						.then(refs => reflib.promises.outputFile(dst, refs));
+						.then(refs => reflib.promises.outputFile(dst, refs, program.setting.output));
 					break;
 				case 'other':
 					if (program.verbose) console.log(`Copying output file "${src}" -> "${dst}"`);
