@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 var _ = require('lodash');
-var debug = require('debug')('iie');
+var debug = require('debug')('i3');
 var colors = require('chalk');
 var fspath = require('path');
-var iie = require('.');
+var i3 = require('.');
 var micromatch = require('micromatch');
 var program = require('commander');
 var promisify = require('util').promisify;
-var reflib = require('/home/mc/Dropbox/Projects/Node/reflib');
+var reflib = require('reflib');
 var spawn = require('child_process').spawn;
 var temp = require('temp');
 
@@ -17,7 +17,7 @@ program
 	.usage('-a <action> -i <input-file> -o <output-file>')
 	.option('-i, --input <file>', 'Input file, use multiple times for more file inputs', (v, total) => { total.push(v); return total }, [])
 	.option('-o, --output <file>', 'Output file, use multiple times for more file outputs', (v, total) => { total.push(v); return total }, [])
-	.option('-a, --action <name>', 'The action to perform. Can be a URL or a short name to an already retreieved IIE worker')
+	.option('-a, --action <name>', 'The action to perform. Can be a URL or a short name to an already retreieved I3 worker')
 	.option('-v, --verbose', 'Be verbose - use multiple to increase verbosity', (v, total) => total + 1, 0)
 	.option('-s, --setting [key=val]', 'Set an option for the worker', (v, total) => { total.push(v); return total }, [])
 	.parse(process.argv);
@@ -40,8 +40,8 @@ Promise.resolve()
 			throw 'Fetching apps from Git URLs is not yet supported';
 		} else {
 			if (program.verbose) console.log(`Examining directory "${program.action}"`);
-			return iie.stat(program.action)
-				.catch(e => { throw `Cannot find IIE compatible app at "${program.action}"` })
+			return i3.stat(program.action)
+				.catch(e => { throw `Cannot find I3 compatible app at "${program.action}"` })
 				.then(manifest => ({
 					manifest,
 					worker: {
@@ -54,7 +54,7 @@ Promise.resolve()
 	// Validate that the manifest {{{
 	.then(async (session) => {
 		if (program.verbose) console.log(`Validating manifest "${session.manifest.path}"`);
-		await iie.validate(session.manifest.path);
+		await i3.validate(session.manifest.path);
 		return session;
 	})
 	// }}}
@@ -106,7 +106,7 @@ Promise.resolve()
 	// }}}
 	// Create workspace {{{
 	.then(session =>
-		promisify(temp.mkdir)({prefix: 'iie-'})
+		promisify(temp.mkdir)({prefix: 'i3-'})
 			.then(path => _.set(session, 'workspace', {path}))
 	)
 	.then(session => {

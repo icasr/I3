@@ -2,12 +2,12 @@ var _ = require('lodash');
 var fs = require('fs').promises;
 var reflib = require('reflib');
 
-function IIE() {
-	var iie = this;
+function I3() {
+	var i3 = this;
 
-	iie.settings = {
+	i3.settings = {
 		manifest: {
-			files: ['package.json', 'iie.json'], // Files to search when looking for the manifest
+			files: ['package.json', 'i3.json'], // Files to search when looking for the manifest
 		},
 	};
 
@@ -16,8 +16,8 @@ function IIE() {
 	* @param {string} path The path on disk to fetch the app from
 	* @returns {Promise} A promise which will resolve with the found manifest contents or reject
 	*/
-	iie.stat = path =>
-		Promise.all(iie.settings.manifest.files.map(file =>
+	i3.stat = path =>
+		Promise.all(i3.settings.manifest.files.map(file =>
 			fs.readFile(`${path}/${file}`)
 				.then(contents => ({path: `${path}/${file}`, contents}))
 				.catch(e => Promise.resolve())
@@ -30,7 +30,7 @@ function IIE() {
 	* Validate a manifest file
 	* @returns {Promise} Either a respolving promise if the manifest is valid or an array of errors passed to the catch
 	*/
-	iie.validate = manifestPath =>
+	i3.validate = manifestPath =>
 		Promise.resolve()
 			.then(()=> fs.readFile(manifestPath))
 			.then(contents => JSON.parse(contents))
@@ -81,7 +81,7 @@ function IIE() {
 			.catch(e => _.castArray(e))
 
 
-	return iie;
+	return i3;
 };
 
-module.exports = new IIE();
+module.exports = new I3();

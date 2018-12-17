@@ -1,11 +1,11 @@
 {
-  "name": "crebp-iie-passthru",
+  "name": "crebp-i3-passthru",
   "version": "0.0.0",
-  "description": "Simple IIE passthru App",
+  "description": "Simple I3 passthru App",
   "main": "index.js",
   "keywords": [
     "icasr",
-    "iie"
+    "i3"
   ],
   "author": "Matt Carter <m@ttcarter.com>",
   "license": "GPLv2",
