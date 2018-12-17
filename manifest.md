@@ -92,7 +92,7 @@ Manifest specification
 | `inputs.[].accepts`   | `array <string>` | Array of globs              | If `(input.type == 'other')` this is an array of acceptable file globs                                                                                   |
 | `inputs.[].filename`  | `string`         |                             | The single filename to store the input as (if `worker.type == 'docker'`)                                                                                 |
 | `inputs.[].upload`    | `string`         | URL                         | A URL endpoint which accepts multipart-mime uploads of files (if `worker.type == 'url'`), if `.filename` is also specified this is used to name the file |
-| `inputs.[].type`      | `string`         | Required, Enum('citations', 'other') | What inputs are accepted for this input type                                                                                          |
+| `inputs.[].type`      | `string`         | Required, Enum('citations', 'other') | What inputs are accepted for this input type                                                                                                    |
 | `inputs.[].format`    | `string`         | Enum(RefLib formats)        | The RefLib compatible format that the worker accepts                                                                                                     |
 | `worker`              | `object`         |                             | Details on how the worker functions                                                                                                                      |
 | `worker.type`         | `string`         | Enum('url', 'docker')       | How to handle worker process                                                                                                                             |
@@ -100,8 +100,10 @@ Manifest specification
 | `worker.url`          | `string`         | URL                         | URL exposed if `worker.type=='url'` this will receive the input data specified in `inputs`                                                               |
 | `worker.mount`        | `string`         | Path                        | The mount path to expose to a docker process. If `inputs.[].filename` is specified the input file is placed in this path                                 |
 | `worker.ui`           | `string`         | URL                         | Indicates that the worker exposes a UI as a URL which interacts with the user                                                                            |
+| `worker.command`      | `array`          |                             | An array of command line options passed to the Docker container                                                                                          |
+| `worker.environment`  | `object <string>` |                            | An object containing environment variables to populate and pass to the Docker container                                                                  |
 | `outputs`             | `array` or `object`  |                         | Array of valid output formats the app accepts or a single output object                                                                                  |
-| `outputs.[].type`     | `string`         | Required, Enum('citations', 'other') | The output type of the worker                                                                                                         |
+| `outputs.[].type`     | `string`         | Required, Enum('citations', 'other') | The output type of the worker                                                                                                                   |
 | `outputs.[].format`   | `string`         | Enum(RefLib formats)        | The RefLib compatible format that the worker outputs                                                                                                     |
 | `outputs.[].filename` | `string`         |                             | The filename of the output data                                                                                                                          |
 | `outputs.[].download` | `string`         | URL                         | An API endpoint that the worker will post data to when complete                                                                                          |
@@ -113,8 +115,47 @@ Manifest specification
 * If `worker.ui` has a value, the worker is initialized and the user redirected to the UI to interact with the worker. `outputs` specifies how the finished data is returned to the system for processing when this stage completes
 * When `input.type == 'other'` and `input.filename` is specified whatever file is taken as input is renamed to `input.filename` automatically
 * `settings` can be either a relative path to a local file (must begin with `./`), a URL to a HTML file or an Object of settings to display to the user when setting up the App.
+* `worker.command` and `worker.environment` are templatable array / objects which can inherit their values from a variety of inputs. See the next section for details on how to customize.
 
 See the [scenarios documentation](./scenarios.md) for implementation examples.
+
+
+Passing settings to containers
+------------------------------
+The `worker.command` and `worker.environment` options use the [Lodash templating system](https://lodash.com/docs/4.17.11#template) to support passing parameters to Docker containers.
+
+For example, in the following we customize the worker command line with the `foo` setting and also specify an optional verbosity:
+
+
+```json
+{
+  worker: {
+    command: [
+      "--always-passed-setting",
+      "--foo=${settings.foo}",
+      "${settings.verbose && '-v'}"
+    ]
+    environment: {
+      "SOME_SETTING": "Passed!",
+      "IS_TALKATIVE": "${setting.verbose}"
+    }
+  }
+}
+```
+
+**Exposed template variables**
+
+| Variable   | Type              | Description                                  |
+|------------|-------------------|----------------------------------------------|
+| `manifest` | `object`          | The manifest file structure as an object     |
+| `settings` | `object <string>` | Any supplied user settings or their defaults |
+
+
+
+**Notes:**
+
+* If a setting is not explicitly specified by the user but a default is set in the settings object the default will be used instead
+* Any blank values are removed from the output. For example in the above if `${setting.verbose}` is falsy in any way that environment variable is not set
 
 
 Settings

@@ -68,6 +68,16 @@ function I3() {
 				});
 				// }}}
 
+				// Check worker {{{
+				if (['docker', 'url'].includes(m.worker.type)) throw 'worker.container can only be "docker" or "url" at this point';
+				if (m.worker.type == 'docker' && !_.has(m, 'worker.container')) throw 'If worker.container == "docker", worker.container must be specified';
+				if (m.worker.type == 'url' && !_.has(m, 'worker.url')) throw 'If worker.container == "url", worker.url must be specified';
+				if (m.command && !_.isArray(m.command)) throw 'worker.command must be an array';
+				if (m.command && m.command.every(i => _.isString(i))) throw 'worker.command must be an array of strings only';
+				if (m.environment && !_.isPlainObject(m.environment)) throw 'worker.envionment must be an object';
+				if (m.environment && _.every(m.environment, (v, k) => _.isString(v) && _.isString(k))) throw 'worker.envionment must be an object of string key / values only';
+				// }}}
+
 				// Check outputs {{{
 				(m.outputs ? _.castArray(m.outputs) : []).forEach((i, index) => {
 					['type'].forEach(f => {

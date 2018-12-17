@@ -236,20 +236,61 @@ Promise.resolve()
 		});
 	}))
 	// }}}
-	// Run the worker {{{
-	.then(session => new Promise((resolve, reject) => {
+	// Compute the Docker workspace {{{
+	.then(session => {
+		// Compute the Docker arguments / environment objects {{{
+		var templateArgs = {
+			manifest: session.manifest,
+			settings: {
+				// Read defaults from settings structure
+				..._(session.manifest.settings || {})
+					.pickBy((v, k) => _.isObject(v) && _.has(v, 'default'))
+					.mapValues(v => v.default)
+					.value(),
+				// Convert incomming settings to object
+				...program.setting,
+			},
+		};
+
+		var entryArgs = (session.manifest.worker.command || [])
+			.map(arg => {
+				var got = _.template(arg)(templateArgs)
+				console.log(`WILL TEMPLATE "${arg}" => "${got}"`);
+				return got;
+			})
+			.filter(i => i) // Remove empty
+
+		var entryEnv = _(session.manifest.worker.environment || {})
+			.mapValues(v => _.template(v)(templateArgs))
+			.pickBy(v => v) // Remove empty
+			.map((v, k) => `--env "${k}=${v}"`)
+			.value();
+		// }}}
+
 		session.docker = {
 			args: _([
 				'run',
 				session.manifest.worker.mount ? ['--volume', `${session.workspace.path}:${session.manifest.worker.mount}`] : '',
 				session.manifest.worker.container,
+
+				// Environment variables
+				entryEnv.length ? entryEnv : false,
+
+				// Command line arguments for an optional entry point
+				entryArgs.length ? entryArgs : false,
 			])
-				.flatten()
+				.flattenDeep()
 				.filter() // Remove blanks
 				.value(),
 		};
-
+		return session;
+	})
+	// }}}
+	// Run the worker {{{
+	.then(session => new Promise((resolve, reject) => {
 		debug('Running session', session);
+
+		if (program.verbose >= 3) console.log('Running Docker as:', ['docker'].concat(session.docker.args).join(' '));
 
 		var ps = spawn('docker', session.docker.args, {stdio: 'inherit'});
 
