@@ -26,11 +26,24 @@ program
 		if (!bits.length == 2) throw `Failed to parse setting "${v}"`;
 		_.set(total, bits[0], bits[1]);
 		return total
-	}, {input: {}, output: {}})
-	.option('--no-build', 'Skip the rebuild of the Docker container')
+	}, {
+		input: {}, // Input settings - passed to reflib.parseFile()
+		output: {}, // Output settings - passed to reflib.outputFile()
+		merge: { // Merge specific settings
+			fields: ['title'], // What fields to compare against when tracking a merge
+			nonMatch: 'remove', // How to treat non-matching references. 'remove' = remove the incomming reference entirely, 'keep' = copy what we have into the output, 'keepDigest' = same as keep but only retain the fields listed in merge.fields
+		}
+	})
+	.option('--build <never|always|lazy>', 'Specify when to build the docker container, lazy (the default) compares the last modified time stamp', 'lazy')
 	.option('--no-merge', 'Skip trying to remerge the data back into the input set, use as is')
 	.parse(process.argv);
 
+
+/**
+* Storage for the original input references as a WeakMap
+* @var {WeakMap}
+*/
+var inputRefs = new WeakMap(); // Parsed input references if `program.merge`
 
 Promise.resolve()
 	// Validate settings {{{
@@ -38,6 +51,7 @@ Promise.resolve()
 		if (!program.action) throw 'Action must be specified via "--action name"';
 		if (!program.input.length) throw 'At least one input file must be specified via "--input path"';
 		if (!program.output.length) throw 'At least one output file must be specified via "--input path"';
+		if (!['remove', 'keep', 'keepDigest'].includes(program.setting.merge.nonMatch)) throw 'The setting "merge.nonMatch" can only be one of: remove, keep, keepDigest';
 		return {};
 	})
 	// }}}
@@ -132,6 +146,14 @@ Promise.resolve()
 				case 'citations':
 					if (program.verbose) console.log(`Converting input citation library "${src}" -> "${dst}"`);
 					return reflib.promises.parseFile(src, program.setting.input) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
+						.then(refs => {
+							if (program.merge) { // We will merge later - hold the parsed refs in memory
+								refs.forEach(ref => {
+									inputRefs.set(_.pick(ref, program.setting.merge.fields), ref);
+								});
+							}
+							return refs;
+						})
 						.then(refs => reflib.promises.outputFile(dst, refs));
 					break;
 				case 'other':
@@ -245,7 +267,27 @@ Promise.resolve()
 			switch (session.output.type) {
 				case 'citations':
 					if (program.verbose) console.log(`Converting output citation library "${src}" -> "${dst}"`);
+
 					return reflib.promises.parseFile(src) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
+						.then(refs => { // Attempt to merge?
+							if (program.merge) { // Perform merge
+								return refs.reduce((output, ref) => {
+									var matchingRef = inputRefs.get(_.pick(ref, program.setting.merge.fields));
+									if (matchingRef) {
+										return output.push(_.merge(matchingRef, ref));
+									} else if (program.setting.merge.nonMatch == 'remove') { // Non-matching reference - filter it out
+										console.log('CANT FIND', ref);
+										return output;
+									} else if (program.setting.merge.nonMatch == 'keep') {
+										return output.push(ref);
+									} else if (program.setting.merge.nonMatch == 'keepDigest') {
+										return output.push(_.pick(ref, program.setting.merge.fields));
+									}
+								}, []);
+							} else {
+								return refs;
+							}
+						})
 						.then(refs => reflib.promises.outputFile(dst, refs, program.setting.output));
 					break;
 				case 'other':

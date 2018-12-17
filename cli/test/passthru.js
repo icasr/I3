@@ -24,7 +24,7 @@ describe('Test passthru App via CLI', function() {
 			'--action=../apps/passthru',
 			`--input=${inputFile}`,
 			`--output=${outputFile}`,
-			'--no-build', // FIXME: Added to speed things up, remove in production
+			'--no-merge', // Since its just a copy we can avoid the overhead of merging
 		], {stdio: 'inherit'})
 		ps.on('exit', code => {
 			expect(code).to.be.equal(0);
@@ -45,7 +45,6 @@ describe('Test passthru App via CLI', function() {
 			`--output=${outputFile}`,
 			'--setting=output.fields=title,year',
 			'--no-merge',
-			'--no-build', // FIXME: Added to speed things up, remove in production
 		], {stdio: 'inherit'})
 		ps.on('exit', code => {
 			expect(code).to.be.equal(0);
