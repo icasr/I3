@@ -3,7 +3,9 @@
 var _ = require('lodash');
 var debug = require('debug')('i3');
 var colors = require('chalk');
+var fs = require('fs').promises;
 var fspath = require('path');
+var glob = require('glob');
 var i3 = require('.');
 var micromatch = require('micromatch');
 var program = require('commander');
@@ -144,10 +146,61 @@ Promise.resolve()
 		})).then(()=> session)
 	)
 	// }}}
+	// Decide whether to build the worker (build=='lazy') {{{
+	.then(session => {
+		if (program.build != 'lazy') return session;
+
+		return Promise.all([
+			// Find last compiled file stamp
+			fs.readFile(fspath.join(session.worker.path, '.i3-docker-build'), 'utf-8')
+				.then(contents => JSON.parse(contents))
+				.then(res => {
+					res.lastModified = new Date(res.lastModified);
+					return res;
+				})
+				.catch(e => Promise.resolve(false)),
+
+			// Find latest modified file stamp
+			new Promise((resolve, reject) => {
+				var newestStamp;
+				var statCache = {};
+
+				glob('**/*', {stat: true, statCache, nobrace: true, cwd: session.worker.path})
+					.on('match', file => {
+						var stats = statCache[fspath.join(session.worker.path, file)];
+						if (!newestStamp || newestStamp.mtime  < stats.mtime) newestStamp = stats.mtime;
+					})
+					.on('end', ()=> resolve(newestStamp))
+			}),
+		])
+			.then(res => {
+				var [lastBuild, latestModified] = res;
+
+				if (!lastBuild) {
+					debug('Need to build Docker container. No cached latest file information found');
+					program.build = true;
+				} else if (lastBuild.lastModified <= latestModified) {
+					debug('No need to build Docker container. Latest file is', latestModified, 'which is older than last build date of', lastBuild.lastModified);
+					program.build = false;
+				} else {
+					debug('Need to rebuild Docker container. Lastest file is', latestModified, 'which is newer than last build date of', lastBuild.lastModified);
+					program.build = true;
+				}
+
+				if (program.build === true) { // Would build - stash the timestamp
+					return fs.writeFile(fspath.join(session.worker.path, '.i3-docker-build'), JSON.stringify({
+						lastModified: latestModified,
+						buildAt: new Date(),
+					}));
+				}
+			})
+			.then(()=> session)
+	})
+	// }}}
 	// Build the worker {{{
 	.then(session => new Promise((resolve, reject) => {
-		if (!program.build) {
-			if (program.verbose) console.log(`Skipping Docker build of container "${session.manifest.worker.container}"`);
+		if (!program.build || program.build == 'never') {
+			if (program.verbose >= 2) console.log(`Skipping Docker build of container "${session.manifest.worker.container}"`);
 			return resolve(session);
 		}
 
