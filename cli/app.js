@@ -28,7 +28,12 @@ program
 		return total
 	}, {
 		input: {}, // Input settings - passed to reflib.parseFile()
-		output: {}, // Output settings - passed to reflib.outputFile()
+		outputTransform: { // Reading back files from worker - passed to reflib.parseFile()
+			fields: true, // Accept all fields back - when the driver supports it
+		},
+		output: { // Output settings - passed to reflib.outputFile()
+			fields: true,
+		},
 		merge: { // Merge specific settings
 			fields: ['title'], // What fields to compare against when tracking a merge
 			nonMatch: 'remove', // How to treat non-matching references. 'remove' = remove the incomming reference entirely, 'keep' = copy what we have into the output, 'keepDigest' = same as keep but only retain the fields listed in merge.fields
@@ -309,7 +314,7 @@ Promise.resolve()
 				case 'citations':
 					if (program.verbose) console.log(`Converting output citation library "${src}" -> "${dst}"`);
 
-					return reflib.promises.parseFile(src) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
+					return reflib.promises.parseFile(src, program.setting.outputTransform) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
 						.then(refs => { // Attempt to merge?
 							if (program.merge) { // Perform merge
 								return refs.reduce((output, ref) => {
