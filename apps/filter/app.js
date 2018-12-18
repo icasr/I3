@@ -3,9 +3,6 @@ var fs = require('fs').promises;
 var micromatch = require('micromatch');
 var program = require('commander');
 
-console.log('FILTER ARGS', process.argv);
-
-
 program
 	.version(require('./package.json').version)
 	.option('-i, --input <file>', 'Provide an input file (JSON)')

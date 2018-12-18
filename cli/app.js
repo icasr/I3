@@ -258,11 +258,7 @@ Promise.resolve()
 		};
 
 		var entryArgs = (session.manifest.worker.command || [])
-			.map(arg => {
-				var got = _.template(arg)(templateArgs)
-				console.log(`WILL TEMPLATE "${arg}" => "${got}"`);
-				return got;
-			})
+			.map(arg => _.template(arg)(templateArgs))
 			.filter(i => i) // Remove empty
 
 		var entryEnv = _(session.manifest.worker.environment || {})
