@@ -24,7 +24,7 @@ describe('Test filter App via CLI', function() {
 			'--action=../apps/filter',
 			`--input=${inputFile}`,
 			`--output=${outputFile}`,
-			'--no-merge', // Since its just a copy we can avoid the overhead of merging
+			'--setting=merge.enabled=false', // Since its just a copy we can avoid the overhead of merging
 		], {stdio: 'inherit'})
 		ps.on('exit', code => {
 			expect(code).to.be.equal(0);
@@ -44,7 +44,7 @@ describe('Test filter App via CLI', function() {
 			'--setting=fields=title,year',
 			`--input=${inputFile}`,
 			`--output=${outputFile}`,
-			'--no-merge', // Disable merge purposely so we don't try to merge the input data back into the output data
+			'--setting=merge.enabled=false', // Since its just a copy we can avoid the overhead of merging
 		], {stdio: 'inherit'})
 		ps.on('exit', code => {
 			expect(code).to.be.equal(0);

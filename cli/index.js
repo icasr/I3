@@ -10,6 +10,21 @@ function I3() {
 		manifest: {
 			files: ['package.json', 'i3.json'], // Files to search when looking for the manifest
 		},
+		settings: { // Default settings population
+			input: {}, // Input settings - passed to reflib.parseFile()
+			outputTransform: { // Reading back files from worker - passed to reflib.parseFile()
+				fields: true, // Accept all fields back - when the driver supports it
+			},
+			output: { // Output settings - passed to reflib.outputFile()
+				fields: true,
+			},
+			merge: { // Merge specific settings
+				enabled: true,
+				dupes: 'warn', // How to deal with duplicate references if merging
+				fields: ['title'], // What fields to compare against when tracking a merge
+				nonMatch: 'remove', // How to treat non-matching references. 'remove' = remove the incomming reference entirely, 'keep' = copy what we have into the output, 'keepDigest' = same as keep but only retain the fields listed in merge.fields
+			},
+		},
 	};
 
 	/**

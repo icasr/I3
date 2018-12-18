@@ -22,35 +22,25 @@ program
 	.option('-a, --action <name>', 'The action to perform. Can be a URL or a short name to an already retreieved I3 worker')
 	.option('-v, --verbose', 'Be verbose - use multiple to increase verbosity', (v, total) => total + 1, 0)
 	.option('-s, --setting <key=val>', 'Set an option for the worker (dotted notation supported)', (v, total) => {
-		var bits = v.split(/\s*=\s*/, 2);
+		var bits = [key, val] = v.split(/\s*=\s*/, 2);
 		if (!bits.length == 2) throw `Failed to parse setting "${v}"`;
-		_.set(total, bits[0], bits[1]);
+		_.set(total, key, // Set the key, accepting various shorthand boolean values
+			val === 'true' ? true
+			: val === 'false' ? false
+			: val
+		);
 		return total
-	}, {
-		input: {}, // Input settings - passed to reflib.parseFile()
-		outputTransform: { // Reading back files from worker - passed to reflib.parseFile()
-			fields: true, // Accept all fields back - when the driver supports it
-		},
-		output: { // Output settings - passed to reflib.outputFile()
-			fields: true,
-		},
-		merge: { // Merge specific settings
-			fields: ['title'], // What fields to compare against when tracking a merge
-			nonMatch: 'remove', // How to treat non-matching references. 'remove' = remove the incomming reference entirely, 'keep' = copy what we have into the output, 'keepDigest' = same as keep but only retain the fields listed in merge.fields
-		}
-	})
+	}, {})
 	.option('--build <never|always|lazy>', 'Specify when to build the docker container, lazy (the default) compares the last modified time stamp', 'lazy')
-	.option('--no-merge', 'Skip trying to remerge the data back into the input set, use as is')
-	.option('--dupes <warn|stop|ignore>', 'How to deal with duplicate references if merging. "warn" is the default', 'warn')
 	.parse(process.argv);
 
 
 /**
 * Storage for the original input references as a WeakMap
-* Each key is the result of a reference being run though i3.hashObject(_.pick(cite, program.settings.merge.fields)), each key is the full reference
+* Each key is the result of a reference being run though i3.hashObject(_.pick(cite, session.settings.merge.fields)), each key is the full reference
 * @var {Map}
 */
-var inputRefs = new Map(); // Parsed input references if `program.merge`
+var inputRefs = new Map(); // Parsed input references if `session.settings.merge.enabled`
 
 Promise.resolve()
 	// Validate settings {{{
@@ -58,7 +48,6 @@ Promise.resolve()
 		if (!program.action) throw 'Action must be specified via "--action name"';
 		if (!program.input.length) throw 'At least one input file must be specified via "--input path"';
 		if (!program.output.length) throw 'At least one output file must be specified via "--input path"';
-		if (!['remove', 'keep', 'keepDigest'].includes(program.setting.merge.nonMatch)) throw 'The setting "merge.nonMatch" can only be one of: remove, keep, keepDigest';
 		return {};
 	})
 	// }}}
@@ -85,6 +74,28 @@ Promise.resolve()
 	.then(async (session) => {
 		if (program.verbose) console.log(`Validating manifest "${session.manifest.path}"`);
 		await i3.validate(session.manifest.path);
+		return session;
+	})
+	// }}}
+	// Calculate settings object {{{
+	.then(session => {
+		// Start with the I3 defaults
+		session.settings = _.cloneDeep(i3.settings.settings);
+
+		// Examine each manifest setting and inherit defaults
+		_(_.get(session, 'manifest.settings') || {})
+			.pickBy((v, k) => _.has(v, 'default'))
+			.forEach((v, k) => _.set(session.settings, k, v.default));
+
+		// Override everything with user supplied settings via the CLI
+		_.merge(session.settings, program.setting);
+
+		return session;
+	})
+	// }}}
+	// Validate final settings object {{{
+	.then(session => {
+		if (!['remove', 'keep', 'keepDigest'].includes(session.settings.merge.nonMatch)) throw 'The setting "merge.nonMatch" can only be one of: remove, keep, keepDigest';
 		return session;
 	})
 	// }}}
@@ -152,14 +163,14 @@ Promise.resolve()
 			switch (session.input.type) {
 				case 'citations':
 					if (program.verbose) console.log(`Converting input citation library "${src}" -> "${dst}"`);
-					return reflib.promises.parseFile(src, program.setting.input) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
+					return reflib.promises.parseFile(src, session.settings.input) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
 						.then(refs => {
-							if (program.merge) { // We will merge later - hold the parsed refs in memory
+							if (session.settings.merge.enabled) { // We will merge later - hold the parsed refs in memory
 								refs.forEach(ref => {
-									var refHash = i3.hashObject(_.pick(ref, program.setting.merge.fields));
-									if (program.dupes == 'warn' && inputRefs.has(refHash)) {
+									var refHash = i3.hashObject(_.pick(ref, session.settings.merge.fields));
+									if (session.settings.merge.dupes == 'warn' && inputRefs.has(refHash)) {
 										console.log('Duplicate citation warning:', i3.readableCitation(ref));
-									} else if (program.dupes == 'stop' && inputRefs.has(refHash)) {
+									} else if (session.settings.merge.dupes == 'stop' && inputRefs.has(refHash)) {
 										console.log('Input contains duplicates. Deduplicate before contunining');
 										console.log('Stopped on citation:', i3.readableCitation(ref));
 										throw 'Duplicates';
@@ -256,15 +267,7 @@ Promise.resolve()
 		// Compute the Docker arguments / environment objects {{{
 		var templateArgs = {
 			manifest: session.manifest,
-			settings: {
-				// Read defaults from settings structure
-				..._(session.manifest.settings || {})
-					.pickBy((v, k) => _.isObject(v) && _.has(v, 'default'))
-					.mapValues(v => v.default)
-					.value(),
-				// Convert incomming settings to object
-				...program.setting,
-			},
+			settings: session.settings,
 		};
 
 		var entryArgs = (session.manifest.worker.command || [])
@@ -274,18 +277,23 @@ Promise.resolve()
 		var entryEnv = _(session.manifest.worker.environment || {})
 			.mapValues(v => _.template(v)(templateArgs))
 			.pickBy(v => v) // Remove empty
-			.map((v, k) => `--env "${k}=${v}"`)
+			.map((v, k) => `--env=${k}=${v}`)
 			.value();
 		// }}}
 
 		session.docker = {
 			args: _([
+				// Docker sub-command
 				'run',
+
+				// Docker options including mounts
 				session.manifest.worker.mount ? ['--volume', `${session.workspace.path}:${session.manifest.worker.mount}`] : '',
-				session.manifest.worker.container,
 
 				// Environment variables
 				entryEnv.length ? entryEnv : false,
+
+				// Main container name
+				session.manifest.worker.container,
 
 				// Command line arguments for an optional entry point
 				entryArgs.length ? entryArgs : false,
@@ -320,20 +328,20 @@ Promise.resolve()
 				case 'citations':
 					if (program.verbose) console.log(`Converting output citation library "${src}" -> "${dst}"`);
 
-					return reflib.promises.parseFile(src, program.setting.outputTransform) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
+					return reflib.promises.parseFile(src, session.settings.outputTransform) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
 						.then(refs => { // Attempt to merge?
-							if (program.merge) { // Perform merge
+							if (session.settings.merge.enabled) { // Perform merge
 								return refs.reduce((output, ref) => {
-									var matchingRef = inputRefs.get(i3.hashObject(_.pick(ref, program.setting.merge.fields)));
+									var matchingRef = inputRefs.get(i3.hashObject(_.pick(ref, session.settings.merge.fields)));
 									if (matchingRef) {
 										output.push(_.merge(matchingRef, ref));
-									} else if (program.setting.merge.nonMatch == 'remove') { // Non-matching reference - filter it out
-										debug('Cannot find reference in output - removing:', _.pick(ref, program.setting.merge.fields));
+									} else if (session.settings.merge.nonMatch == 'remove') { // Non-matching reference - filter it out
+										debug('Cannot find reference in output - removing:', _.pick(ref, session.settings.merge.fields));
 										// Do nothing
-									} else if (program.setting.merge.nonMatch == 'keep') {
+									} else if (session.settings.merge.nonMatch == 'keep') {
 										output.push(ref);
-									} else if (program.setting.merge.nonMatch == 'keepDigest') {
-										output.push(_.pick(ref, program.setting.merge.fields));
+									} else if (session.settings.merge.nonMatch == 'keepDigest') {
+										output.push(_.pick(ref, session.settings.merge.fields));
 									}
 									return output;
 								}, []);
@@ -341,7 +349,7 @@ Promise.resolve()
 								return refs;
 							}
 						})
-						.then(refs => reflib.promises.outputFile(dst, refs, program.setting.output));
+						.then(refs => reflib.promises.outputFile(dst, refs, session.settings.output));
 					break;
 				case 'other':
 					if (program.verbose) console.log(`Copying output file "${src}" -> "${dst}"`);
