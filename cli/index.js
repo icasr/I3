@@ -1,4 +1,5 @@
 var _ = require('lodash');
+var crypto = require('crypto');
 var fs = require('fs').promises;
 var reflib = require('reflib');
 
@@ -90,6 +91,57 @@ function I3() {
 			})
 			.catch(e => _.castArray(e))
 
+
+
+	/**
+	* Returns the SHA1 of an object reference
+	* This is used as a utility function when stashing citations for later retrieval
+	* @param {Object} obj The object to hash
+	* @returns {string} The SHA1 hash of the object
+	*/
+	i3.hashObject = obj =>
+		crypto.createHash('sha1').update(
+			JSON.stringify(
+				_(obj)
+					.toPairs()
+					.orderBy(0)
+					.fromPairs()
+					.value()
+			)
+		).digest('base64')
+
+
+	/**
+	* Return a human readable citation - or as close as we can get with the information to hand
+	* @param {Object} ref The reference to cite, following the RefLib standards
+	* @param {Object} [options] Additional options to pass
+	* @param {boolean} [options.html=false] Format the reference using HTML
+	* @returns {string} The human readable reference
+	*/
+	i3.readableCitation = (ref, options) => {
+		var settings = {
+			html: false,
+			...options,
+		};
+
+		var out = [];
+
+		// NOTE: This is the Harvard citation style
+		if (ref.recNumber) out.push(`#${ref.recNumber}`);
+		if (ref.authors) out.push(_.isArray(ref.authors) ? ref.authors.join(', ') : ref.authors);
+		if (ref.year) out.push(`(${ref.year})`);
+		out.push([
+			settings.html ? '<i>' : '',
+			ref.title ? ref.title.trimEnd('.') + '.' : 'Untitled',
+			settings.html ? '<i>' : '',
+		].filter(i => i).join(''))
+
+		if (ref.journal) out.push(ref.journal);
+		if (ref.volume) out.push(`Vol ${ref.volume}`);
+		if (ref.pages) out.push(`pp. ${ref.pages}`);
+
+		return out.join(' ');
+	};
 
 	return i3;
 };

@@ -41,14 +41,16 @@ program
 	})
 	.option('--build <never|always|lazy>', 'Specify when to build the docker container, lazy (the default) compares the last modified time stamp', 'lazy')
 	.option('--no-merge', 'Skip trying to remerge the data back into the input set, use as is')
+	.option('--dupes <warn|stop|ignore>', 'How to deal with duplicate references if merging. "warn" is the default', 'warn')
 	.parse(process.argv);
 
 
 /**
 * Storage for the original input references as a WeakMap
-* @var {WeakMap}
+* Each key is the result of a reference being run though i3.hashObject(_.pick(cite, program.settings.merge.fields)), each key is the full reference
+* @var {Map}
 */
-var inputRefs = new WeakMap(); // Parsed input references if `program.merge`
+var inputRefs = new Map(); // Parsed input references if `program.merge`
 
 Promise.resolve()
 	// Validate settings {{{
@@ -154,7 +156,15 @@ Promise.resolve()
 						.then(refs => {
 							if (program.merge) { // We will merge later - hold the parsed refs in memory
 								refs.forEach(ref => {
-									inputRefs.set(_.pick(ref, program.setting.merge.fields), ref);
+									var refHash = i3.hashObject(_.pick(ref, program.setting.merge.fields));
+									if (program.dupes == 'warn' && inputRefs.has(refHash)) {
+										console.log('Duplicate citation warning:', i3.readableCitation(ref));
+									} else if (program.dupes == 'stop' && inputRefs.has(refHash)) {
+										console.log('Input contains duplicates. Deduplicate before contunining');
+										console.log('Stopped on citation:', i3.readableCitation(ref));
+										throw 'Duplicates';
+									}
+									inputRefs.set(refHash, ref);
 								});
 							}
 							return refs;
@@ -314,17 +324,18 @@ Promise.resolve()
 						.then(refs => { // Attempt to merge?
 							if (program.merge) { // Perform merge
 								return refs.reduce((output, ref) => {
-									var matchingRef = inputRefs.get(_.pick(ref, program.setting.merge.fields));
+									var matchingRef = inputRefs.get(i3.hashObject(_.pick(ref, program.setting.merge.fields)));
 									if (matchingRef) {
-										return output.push(_.merge(matchingRef, ref));
+										output.push(_.merge(matchingRef, ref));
 									} else if (program.setting.merge.nonMatch == 'remove') { // Non-matching reference - filter it out
-										console.log('CANT FIND', ref);
-										return output;
+										debug('Cannot find reference in output - removing:', _.pick(ref, program.setting.merge.fields));
+										// Do nothing
 									} else if (program.setting.merge.nonMatch == 'keep') {
-										return output.push(ref);
+										output.push(ref);
 									} else if (program.setting.merge.nonMatch == 'keepDigest') {
-										return output.push(_.pick(ref, program.setting.merge.fields));
+										output.push(_.pick(ref, program.setting.merge.fields));
 									}
+									return output;
 								}, []);
 							} else {
 								return refs;
