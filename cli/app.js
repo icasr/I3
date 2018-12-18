@@ -195,7 +195,7 @@ Promise.resolve()
 				glob('**/*', {stat: true, statCache, nobrace: true, cwd: session.worker.path})
 					.on('match', file => {
 						var stats = statCache[fspath.join(session.worker.path, file)];
-						if (!newestStamp || newestStamp.mtime  < stats.mtime) newestStamp = stats.mtime;
+						if (!newestStamp || stats.mtime > newestStamp) newestStamp = stats.mtime;
 					})
 					.on('end', ()=> resolve(newestStamp))
 			}),
@@ -206,12 +206,12 @@ Promise.resolve()
 				if (!lastBuild) {
 					debug('Need to build Docker container. No cached latest file information found');
 					program.build = true;
-				} else if (lastBuild.lastModified <= latestModified) {
-					debug('No need to build Docker container. Latest file is', latestModified, 'which is older than last build date of', lastBuild.lastModified);
-					program.build = false;
-				} else {
+				} else if (latestModified > lastBuild.lastModified) {
 					debug('Need to rebuild Docker container. Lastest file is', latestModified, 'which is newer than last build date of', lastBuild.lastModified);
 					program.build = true;
+				} else {
+					debug('Skip build of Docker container. Latest file is', latestModified, 'which is older than last build date of', lastBuild.lastModified);
+					program.build = false;
 				}
 
 				if (program.build === true) { // Would build - stash the timestamp
