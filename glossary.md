@@ -1,6 +1,8 @@
 Glossary
 ========
 
+| Term   | Definition                                                                                                                                        |
+|--------|---------------------------------------------------------------------------------------------------------------------------------------------------|
 | App    | An individual piece of component software which performs one or more actions on a data set and returns a result                                   |
 | CLI    | Command Line Interface - A terminal driven application which implements the IIE standard                                                          |
 | Docker | [A containerizing environment](https://www.docker.com) which can enclose executable software within a dependable and re-distributable environment |
