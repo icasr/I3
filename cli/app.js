@@ -23,12 +23,17 @@ program
 	.option('-v, --verbose', 'Be verbose - use multiple to increase verbosity', (v, total) => total + 1, 0)
 	.option('-s, --setting <key=val>', 'Set an option for the worker (dotted notation supported)', (v, total) => {
 		var bits = [key, val] = v.split(/\s*=\s*/, 2);
-		if (!bits.length == 2) throw `Failed to parse setting "${v}"`;
-		_.set(total, key, // Set the key, accepting various shorthand boolean values
-			val === 'true' ? true
-			: val === 'false' ? false
-			: val
-		);
+		if (bits.length == 1) { // Assume we are just setting a flag to true
+			_.set(total, key, true);
+		}  else if (bits.length == 2) { // Assume key=val
+			_.set(total, key, // Set the key, accepting various shorthand boolean values
+				val === 'true' ? true
+				: val === 'false' ? false
+				: val
+			);
+		} else {
+			throw `Failed to parse setting "${v}"`;
+		}
 		return total
 	}, {})
 	.option('--build <never|always|lazy>', 'Specify when to build the docker container, lazy (the default) compares the last modified time stamp', 'lazy')
@@ -364,10 +369,7 @@ Promise.resolve()
 	)
 	// }}}
 	// End {{{
-	.then(()=> {
-		console.log(colors.cyan('FIXME'), 'All done');
-		process.exit(0);
-	})
+	.then(()=> process.exit(0))
 	.catch(err => {
 		console.log(colors.red('ERR'), err.toString());
 		process.exit(1);
