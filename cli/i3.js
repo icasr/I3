@@ -1,11 +1,9 @@
 #!/usr/bin/env node
 
 var _ = require('lodash');
-var debug = require('debug')('i3');
 var colors = require('chalk');
 var fs = require('fs').promises;
 var fspath = require('path');
-var glob = require('glob');
 var i3 = require('.');
 var micromatch = require('micromatch');
 var program = require('commander');
@@ -76,7 +74,7 @@ Promise.resolve()
 			throw new Error('Fetching apps from Git URLs is not yet supported');
 		} else {
 			if (program.verbose) i3.log(`Examining directory "${program.action}"`);
-			return i3.stat(program.action)
+			return i3.manifest.get(program.action)
 				.catch(e => { throw `Cannot find I3 compatible app at "${program.action}"` })
 				.then(manifest => ({
 					manifest,
@@ -88,10 +86,9 @@ Promise.resolve()
 	})
 	// }}}
 	// Validate that the manifest {{{
-	.then(async (session) => {
+	.then(session => {
 		if (program.verbose) i3.log(`Validating manifest "${session.manifest.path}"`);
-		await i3.validate(session.manifest.path);
-		return session;
+		return i3.manifest.validate(session.manifest.path).then(()=> session);
 	})
 	// }}}
 	// Calculate settings object {{{
@@ -211,72 +208,15 @@ Promise.resolve()
 		})).then(()=> session)
 	)
 	// }}}
-	// Decide whether to build the worker (build=='lazy') {{{
+	// Build the worker if needed {{{
+	.then(session => i3.docker.needsBuild(session.worker.path).then(needed => _.set(session, 'needsBuild', needed))
 	.then(session => {
-		if (program.build != 'lazy') return session;
-
-		return Promise.all([
-			// Find last compiled file stamp
-			fs.readFile(fspath.join(session.worker.path, '.i3-docker-build'), 'utf-8')
-				.then(contents => JSON.parse(contents))
-				.then(res => {
-					res.lastModified = new Date(res.lastModified);
-					return res;
-				})
-				.catch(e => Promise.resolve(false)),
-
-			// Find latest modified file stamp
-			new Promise((resolve, reject) => {
-				var newestStamp;
-				var statCache = {};
-
-				glob('**/*', {stat: true, statCache, nobrace: true, cwd: session.worker.path})
-					.on('match', file => {
-						var stats = statCache[fspath.join(session.worker.path, file)];
-						if (!newestStamp || stats.mtime > newestStamp) newestStamp = stats.mtime;
-					})
-					.on('end', ()=> resolve(newestStamp))
-			}),
-		])
-			.then(res => {
-				var [lastBuild, latestModified] = res;
-
-				if (!lastBuild) {
-					debug('Need to build Docker container. No cached latest file information found');
-					program.build = true;
-				} else if (latestModified > lastBuild.lastModified) {
-					debug('Need to rebuild Docker container. Lastest file is', latestModified, 'which is newer than last build date of', lastBuild.lastModified);
-					program.build = true;
-				} else {
-					debug('Skip build of Docker container. Latest file is', latestModified, 'which is older than last build date of', lastBuild.lastModified);
-					program.build = false;
-				}
-
-				if (program.build === true) { // Would build - stash the timestamp
-					return fs.writeFile(fspath.join(session.worker.path, '.i3-docker-build'), JSON.stringify({
-						lastModified: latestModified,
-						buildAt: new Date(),
-					}));
-				}
-			})
-			.then(()=> session)
-	})
-	// }}}
-	// Build the worker {{{
-	.then(session => new Promise((resolve, reject) => {
-		if (!program.build || program.build == 'never') {
+		if (!session.needsBuild) {
 			if (program.verbose >= 2) i3.log(`Skipping Docker build of container "${session.manifest.worker.container}"`);
-			return resolve(session);
+			return session; // Doesn't need building - pass session on and skip
+		} else {
+			return i3.docker.build(path, session.manifest).then(()=> session);
 		}
-
-		process.chdir(session.worker.path);
-
-		if (program.verbose) i3.log(`Building Docker container "${session.manifest.worker.container}"`);
-		var ps = spawn('docker', ['build', `--tag=${session.manifest.worker.container}`, '.'], {stdio: 'inherit'});
-		ps.on('close', code => {
-			if (code != 0) return reject(`Docker-build exited with non-zero exit code: ${code}`);
-			resolve(session);
-		});
 	}))
 	// }}}
 	// Compute the Docker workspace {{{
@@ -324,7 +264,7 @@ Promise.resolve()
 	// }}}
 	// Run the worker {{{
 	.then(session => new Promise((resolve, reject) => {
-		debug('Running session', session);
+		i3.log(2, 'Running session', session);
 
 		if (program.verbose >= 3) i3.log('Running Docker as:', ['docker'].concat(session.docker.args).join(' '));
 
@@ -353,7 +293,7 @@ Promise.resolve()
 									if (matchingRef) {
 										output.push(_.merge(matchingRef, ref));
 									} else if (session.settings.merge.nonMatch == 'remove') { // Non-matching reference - filter it out
-										debug('Cannot find reference in output - removing:', _.pick(ref, session.settings.merge.fields));
+										i3.log(2, 'Cannot find reference in output - removing:', _.pick(ref, session.settings.merge.fields));
 										// Do nothing
 									} else if (session.settings.merge.nonMatch == 'keep') {
 										output.push(ref);

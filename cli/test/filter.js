@@ -22,6 +22,7 @@ describe('Test filter App via CLI', function() {
 		testkit.runner([
 			'../cli/i3',
 			'-vvv',
+			'--debug',
 			'--action=../apps/filter',
 			`--input=${inputFile}`,
 			`--output=${outputFile}`,
