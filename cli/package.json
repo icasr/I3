@@ -17,18 +17,18 @@
     "node": ">=10.10.0"
   },
   "dependencies": {
-    "chalk": "^2.4.1",
-    "commander": "^2.19.0",
-    "debug": "^4.1.0",
+    "chalk": "^2.4.2",
+    "commander": "^2.20.0",
+    "debug": "^4.1.1",
     "glob": "^7.1.3",
     "lodash": "^4.17.11",
     "micromatch": "^3.1.10",
-    "reflib": "^1.6.3",
-    "temp": "^0.8.3"
+    "reflib": "^1.6.6",
+    "temp": "^0.9.0"
   },
   "devDependencies": {
     "chai": "^4.2.0",
-    "mocha": "^5.2.0",
+    "mocha": "^6.0.2",
     "mocha-logger": "^1.0.6"
   }
 }
