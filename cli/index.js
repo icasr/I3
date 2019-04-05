@@ -11,7 +11,7 @@ var i3 = function I3() {
 
 	i3.settings = {
 		docker: {
-			stratergy: 'lazy',
+			strategy: 'lazy',
 			markerFile: '.i3-docker-build',
 		},
 		logging: {
@@ -20,26 +20,20 @@ var i3 = function I3() {
 		manifest: {
 			files: ['package.json', 'i3.json'], // Files to search when looking for the manifest
 		},
+		merge: { // Merge specific settings
+			enabled: true,
+			dupes: 'warn', // How to deal with duplicate references if merging
+			fields: ['title'], // What fields to compare against when tracking a merge
+			nonMatch: 'remove', // How to treat non-matching references. 'remove' = remove the incomming reference entirely, 'keep' = copy what we have into the output, 'keepDigest' = same as keep but only retain the fields listed in merge.fields
+		},
+		outputTransform: { // Reading back files from worker - passed to reflib.parseFile()
+			fields: true, // Accept all fields back - when the driver supports it
+		},
 		profiles: {
 			paths: [ // Paths to check in desending order
 				fspath.join(os.homedir(), '.i3'), // Global HOMEDIR config
 				fspath.join(process.cwd(), '.i3'), // CWD config
 			],
-		},
-		settings: { // Default settings population
-			input: {}, // Input settings - passed to reflib.parseFile()
-			outputTransform: { // Reading back files from worker - passed to reflib.parseFile()
-				fields: true, // Accept all fields back - when the driver supports it
-			},
-			output: { // Output settings - passed to reflib.outputFile()
-				fields: true,
-			},
-			merge: { // Merge specific settings
-				enabled: true,
-				dupes: 'warn', // How to deal with duplicate references if merging
-				fields: ['title'], // What fields to compare against when tracking a merge
-				nonMatch: 'remove', // How to treat non-matching references. 'remove' = remove the incomming reference entirely, 'keep' = copy what we have into the output, 'keepDigest' = same as keep but only retain the fields listed in merge.fields
-			},
 		},
 		verbose: 0,
 	};
@@ -71,8 +65,8 @@ var i3 = function I3() {
 			.then(inis => inis
 				.filter(f => !_.isEmpty(f))
 				.reduce((settings, file) => {
-					Object.assign(settings, _.get(file, 'global')); // Merge global section
-					_.castArray(profiles).forEach(profile => Object.assign(settings, _.get(file, profile))); // Merge each given profile
+					_.merge(settings, _.get(file, 'global')); // Merge global section
+					_.castArray(profiles).forEach(profile => _.merge(settings, _.get(file, profile))); // Merge each given profile
 					return settings;
 				}, {})
 			)
@@ -147,12 +141,10 @@ var i3 = function I3() {
 
 
 	// Load late-bound helper libraries
-	setImmediate(()=> {
-		i3.docker = require('./lib/docker');
-		i3.manifest = require('./lib/manifest');
-	});
+	i3.docker = new require('./lib/docker')(i3);
+	i3.manifest = new require('./lib/manifest')(i3);
 
 	return i3;
 };
 
-module.exports = new i3();
+module.exports = i3;

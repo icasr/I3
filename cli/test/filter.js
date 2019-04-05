@@ -21,7 +21,7 @@ describe('Test filter App via CLI', function() {
 	it('should launch the process and pass through data unedited', ()=>
 		testkit.runner([
 			'../cli/i3',
-			'-vvv',
+			'-vv',
 			'--debug',
 			'--action=../apps/filter',
 			`--input=${inputFile}`,
@@ -37,7 +37,7 @@ describe('Test filter App via CLI', function() {
 	it('should launch the process and accept back filtered data', ()=>
 		testkit.runner([
 			'../cli/i3',
-			'-vvv',
+			'-vv',
 			'--action=../apps/filter',
 			'--setting=fields=title,year',
 			`--input=${inputFile}`,
@@ -59,7 +59,7 @@ describe('Test filter App via CLI', function() {
 	it('should launch the process and merge back filtered data', ()=>
 		testkit.runner([
 			'../cli/i3',
-			'-vvv',
+			'-vv',
 			'--action=../apps/filter',
 			'--setting=fields=title,year',
 			`--input=${inputFile}`,

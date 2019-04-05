@@ -1,21 +1,20 @@
 /**
 * I3 docker library / singleton
 */
-var i3 = require('..');
 var fs = require('fs').promises;
 var fspath = require('path');
 var glob = require('globby');
 
-var i3Docker = function i3Docker() {
+var i3Docker = function i3Docker(i3) {
 	var docker = this;
 
 	/**
 	* Determine if the docker image needs building
-	* NOTE: This function uses i3.settings.docker.stratergy and will always return true / false if those values are 'always', 'never' respectively
+	* NOTE: This function uses i3.settings.docker.strategy and will always return true / false if those values are 'always', 'never' respectively
 	*/
 	docker.needsBuild = path => {
-		if (i3.settings.docker.stratergy == 'always') return Promise.resolve(true);
-		if (i3.settings.docker.stratergy == 'never') return Promise.resolve(false);
+		if (i3.settings.docker.strategy == 'always') return Promise.resolve(true);
+		if (i3.settings.docker.strategy == 'never') return Promise.resolve(false);
 
 		return Promise.all([
 			// Find last compiled file stamp
@@ -33,7 +32,7 @@ var i3Docker = function i3Docker() {
 					!newestStamp || file.mtime > newestStamp
 						? file.mtime
 						: newestStamp
-				)),
+				, 0)),
 		])
 			.then(res => {
 				var [lastBuild, latestModified] = res;
@@ -87,4 +86,4 @@ var i3Docker = function i3Docker() {
 	return docker;
 };
 
-module.exports = new i3Docker();
+module.exports = i3Docker;

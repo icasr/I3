@@ -4,7 +4,7 @@ var _ = require('lodash');
 var colors = require('chalk');
 var fs = require('fs').promises;
 var fspath = require('path');
-var i3 = require('.');
+var i3 = new require('.')();
 var micromatch = require('micromatch');
 var program = require('commander');
 var promisify = require('util').promisify;
@@ -44,43 +44,33 @@ program
 
 /**
 * Storage for the original input references as a WeakMap
-* Each key is the result of a reference being run though i3.hashObject(_.pick(cite, session.settings.merge.fields)), each key is the full reference
+* Each key is the result of a reference being run though i3.hashObject(_.pick(cite, i3.settings.merge.fields)), each key is the full reference
 * @var {Map}
 */
-var inputRefs = new Map(); // Parsed input references if `session.settings.merge.enabled`
+var inputRefs = new Map(); // Parsed input references if `i3.settings.merge.enabled`
 
 Promise.resolve()
 	// Load profiles {{{
 	.then(()=> i3.loadConfig(program.args, false))
 	.then(settings => {
 		if (program.debugOwnSettings) i3.log(0, 'Settings (no defaults):', settings);
-		Object.assign(i3.settings, settings); // Apply settings
-		if (program.debugSettings) i3.log(0, 'Settings:', i3.settings);
+		_.merge(i3.settings, settings); // Apply settings
 	})
 	// }}}
-	// Map settings to I3 instance {{{
+	// Map settings to I3 {{{
 	.then(()=> {
-		// Move CLI settings into I3 {{{
-		i3.settings.verbose = program.verbose;
-		// }}}
-
-		// Move i3 settings into CLI {{{
-		// Technically the profile is allowed to overide the CLI so here we support importing settings from the profile file which arn't really specific to I3
-		// We also remove the key from I3.settings to keep things clean
 		[
-			{profileKey: 'action', cliKey: 'action'},
-			{profileKey: 'input', cliKey: 'input'},
-			{profileKey: 'output', cliKey: 'output'},
-			{profileKey: 'settings', cliKey: 'setting'},
-			{profileKey: 'build', cliKey: 'build'},
-			{profileKey: 'debug', cliKey: 'debug'},
+			{cliKey: 'verbose', i3Key: 'verbose'},
+			{cliKey: 'input', i3Key: 'input'},
+			{cliKey: 'output', i3Key: 'output'},
+			{cliKey: 'build', i3Key: 'docker.strategy'},
+			{cliKey: 'action', i3Key: 'action'},
 		].forEach(s => {
-			if (!_.has(i3.settings, s.profileKey)) return;
-			_.set(program, s.cliKey, _.get(i3.settings, s.profileKey))
-			_.unset(i3.settings, s.profileKey);
+			if (!program[s.cliKey]) return;
+			_.set(i3.settings, s.i3Key, program[s.cliKey]);
 		})
-		// }}}
 	})
+	.then(()=> program.debugSettings && i3.log(0, 'Settings:', i3.settings))
 	// }}}
 	// Validate settings {{{
 	.then(()=> {
@@ -117,23 +107,20 @@ Promise.resolve()
 	// }}}
 	// Calculate settings object {{{
 	.then(session => {
-		// Start with the I3 defaults
-		session.settings = _.cloneDeep(i3.settings.settings);
-
 		// Examine each manifest setting and inherit defaults
 		_(_.get(session, 'manifest.settings') || {})
 			.pickBy((v, k) => _.has(v, 'default'))
-			.forEach((v, k) => _.set(session.settings, k, v.default));
+			.forEach((v, k) => _.set(i3.settings, k, v.default));
 
 		// Override everything with user supplied settings via the CLI
-		_.merge(session.settings, program.setting);
+		_.merge(i3.settings, program.setting);
 
 		return session;
 	})
 	// }}}
 	// Validate final settings object {{{
 	.then(session => {
-		if (!['remove', 'keep', 'keepDigest'].includes(session.settings.merge.nonMatch)) throw new Error('The setting "merge.nonMatch" can only be one of: remove, keep, keepDigest');
+		if (!['remove', 'keep', 'keepDigest'].includes(i3.settings.merge.nonMatch)) throw new Error('The setting "merge.nonMatch" can only be one of: remove, keep, keepDigest');
 		return session;
 	})
 	// }}}
@@ -201,14 +188,14 @@ Promise.resolve()
 			switch (session.input.type) {
 				case 'citations':
 					i3.log(1, `Converting input citation library "${src}" -> "${dst}"`);
-					return reflib.promises.parseFile(src, session.settings.input) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
+					return reflib.promises.parseFile(src, i3.settings.input) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
 						.then(refs => {
-							if (session.settings.merge.enabled) { // We will merge later - hold the parsed refs in memory
+							if (i3.settings.merge.enabled) { // We will merge later - hold the parsed refs in memory
 								refs.forEach(ref => {
-									var refHash = i3.hashObject(_.pick(ref, session.settings.merge.fields));
-									if (session.settings.merge.dupes == 'warn' && inputRefs.has(refHash)) {
+									var refHash = i3.hashObject(_.pick(ref, i3.settings.merge.fields));
+									if (i3.settings.merge.dupes == 'warn' && inputRefs.has(refHash)) {
 										i3.log(0, 'Duplicate citation warning:', i3.readableCitation(ref));
-									} else if (session.settings.merge.dupes == 'stop' && inputRefs.has(refHash)) {
+									} else if (i3.settings.merge.dupes == 'stop' && inputRefs.has(refHash)) {
 										i3.log(0, 'Input contains duplicates. Deduplicate before contunining');
 										i3.log(0, 'Stopped on citation:', i3.readableCitation(ref));
 										throw new Error('Duplicates');
@@ -248,7 +235,7 @@ Promise.resolve()
 		// Compute the Docker arguments / environment objects {{{
 		var templateArgs = {
 			manifest: session.manifest,
-			settings: session.settings,
+			settings: i3.settings,
 		};
 
 		var entryArgs = (session.manifest.worker.command || [])
@@ -288,9 +275,9 @@ Promise.resolve()
 	// }}}
 	// Run the worker {{{
 	.then(session => new Promise((resolve, reject) => {
-		i3.log(2, 'Running session', session);
+		i3.log(3, 'Running session', session);
 
-		i3.log(3, 'Running Docker as:', ['docker'].concat(session.docker.args).join(' '));
+		i3.log(2, 'Running Docker as:', ['docker'].concat(session.docker.args).join(' '));
 
 		var ps = spawn('docker', session.docker.args, {stdio: 'inherit'});
 
@@ -309,20 +296,20 @@ Promise.resolve()
 				case 'citations':
 					i3.log(1, `Converting output citation library "${src}" -> "${dst}"`);
 
-					return reflib.promises.parseFile(src, session.settings.outputTransform) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
+					return reflib.promises.parseFile(src, i3.settings.outputTransform) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
 						.then(refs => { // Attempt to merge?
-							if (session.settings.merge.enabled) { // Perform merge
+							if (i3.settings.merge.enabled) { // Perform merge
 								return refs.reduce((output, ref) => {
-									var matchingRef = inputRefs.get(i3.hashObject(_.pick(ref, session.settings.merge.fields)));
+									var matchingRef = inputRefs.get(i3.hashObject(_.pick(ref, i3.settings.merge.fields)));
 									if (matchingRef) {
 										output.push(_.merge(matchingRef, ref));
-									} else if (session.settings.merge.nonMatch == 'remove') { // Non-matching reference - filter it out
-										i3.log(2, 'Cannot find reference in output - removing:', _.pick(ref, session.settings.merge.fields));
+									} else if (i3.settings.merge.nonMatch == 'remove') { // Non-matching reference - filter it out
+										i3.log(2, 'Cannot find reference in output - removing:', _.pick(ref, i3.settings.merge.fields));
 										// Do nothing
-									} else if (session.settings.merge.nonMatch == 'keep') {
+									} else if (i3.settings.merge.nonMatch == 'keep') {
 										output.push(ref);
-									} else if (session.settings.merge.nonMatch == 'keepDigest') {
-										output.push(_.pick(ref, session.settings.merge.fields));
+									} else if (i3.settings.merge.nonMatch == 'keepDigest') {
+										output.push(_.pick(ref, i3.settings.merge.fields));
 									}
 									return output;
 								}, []);
@@ -330,7 +317,7 @@ Promise.resolve()
 								return refs;
 							}
 						})
-						.then(refs => reflib.promises.outputFile(dst, refs, session.settings.output));
+						.then(refs => reflib.promises.outputFile(dst, refs, i3.settings.output));
 					break;
 				case 'other':
 					i3.log(1, `Copying output file "${src}" -> "${dst}"`);

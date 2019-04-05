@@ -2,10 +2,9 @@
 * I3 manifest library / singleton
 */
 var _ = require('lodash');
-var i3 = require('..');
 var fs = require('fs').promises;
 
-var i3Manifest = function i3Manifest() {
+var i3Manifest = function i3Manifest(i3) {
 	var manifest = this;
 
 	/**
@@ -90,4 +89,4 @@ var i3Manifest = function i3Manifest() {
 	return manifest;
 };
 
-module.exports = new i3Manifest();
+module.exports = i3Manifest;

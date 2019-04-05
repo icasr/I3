@@ -22,7 +22,7 @@ describe('Test dedupe App via CLI', function() {
 	it('should launch the process and mark references as duplicates', ()=>
 		testkit.runner([
 			'../cli/i3',
-			'-vvv',
+			'-vv',
 			`--action=${dedupePath}`,
 			`--input=${inputFile}`,
 			`--output=${outputFile}`,

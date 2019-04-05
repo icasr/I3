@@ -21,7 +21,7 @@ describe('Test passthru App via CLI', function() {
 	it('should launch the process and pass through data unedited', ()=>
 		testkit.runner([
 			'../cli/i3',
-			'-vvv',
+			'-vv',
 			'--action=../apps/passthru',
 			`--input=${inputFile}`,
 			`--output=${outputFile}`,
@@ -39,7 +39,7 @@ describe('Test passthru App via CLI', function() {
 	it('should launch the process and return a subset of fields', ()=>
 		testkit.runner([
 			'../cli/i3',
-			'-vvv',
+			'-vv',
 			'--action=../apps/passthru',
 			`--input=${inputFile}`,
 			`--output=${outputFile}`,
