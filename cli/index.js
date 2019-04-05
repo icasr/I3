@@ -1,12 +1,21 @@
 var _ = require('lodash');
 var crypto = require('crypto');
 var fs = require('fs').promises;
+var fspath = require('path');
+var os = require('os');
+var ini = require('ini');
 var reflib = require('reflib');
 
 function I3() {
 	var i3 = this;
 
 	i3.settings = {
+		profiles: {
+			paths: [ // Paths to check in desending order
+				fspath.join(os.homedir(), '.i3'), // Global HOMEDIR config
+				fspath.join(process.cwd(), '.i3'), // CWD config
+			],
+		},
 		manifest: {
 			files: ['package.json', 'i3.json'], // Files to search when looking for the manifest
 		},
@@ -30,6 +39,41 @@ function I3() {
 			},
 		},
 	};
+
+
+	/**
+	* Load config from config files
+	* Profile information is loaded from the following in desending order with each sucessive section overriding options:
+	* 	- Base defaults in i3.settings
+	* 	- Global profile (~/.i3)
+	* 		- `[global]` section
+	* 		- profiles section(s)
+	* 	- CWD profile (./.i3)
+	* 		- `[global]` section
+	* 		- profiles section(s)
+	* @param {string|array} [profile='default'] Optional profile(s) to use
+	* @param {boolean} [mergeBase=true] Merge with the initial settings of i3.settings, disable to resolve with only user specified option (manual merging of i3.settings is still required for them to take effect)
+	* @returns {Promise} A promise which will resolve with i3.settings when loaded based on the current profile
+	*/
+	i3.loadConfig = (profiles = 'default', mergeBase = true) =>
+		Promise.resolve()
+			.then(()=> Promise.all( // Read each config file
+				i3.settings.profiles.paths.map(path =>
+					fs.readFile(path, 'utf-8')
+						.then(contents => ini.decode(contents))
+						.catch(e => ({}))
+				)
+			))
+			.then(inis => inis
+				.filter(f => !_.isEmpty(f))
+				.reduce((settings, file) => {
+					Object.assign(settings, _.get(file, 'global')); // Merge global section
+					_.castArray(profiles).forEach(profile => Object.assign(settings, _.get(file, profile))); // Merge each given profile
+					return settings;
+				}, {})
+			)
+			.then(settings => mergeBase ? Object.assign(i3.settings, settings) : settings)
+
 
 	/**
 	* Probe a file on disk and fetch its manifest

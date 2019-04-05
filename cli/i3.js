@@ -16,7 +16,7 @@ var temp = require('temp');
 
 program
 	.version(require('./package.json').version)
-	.usage('-a <action> -i <input-file> -o <output-file>')
+	.usage('-a <action> -i <input-file> -o <output-file> [profile...]')
 	.description('CLI to easily automate systematic review tools')
 	.option('-i, --input <file>', 'Input file, use multiple times for more file inputs', (v, total) => { total.push(v); return total }, [])
 	.option('-o, --output <file>', 'Output file, use multiple times for more file outputs', (v, total) => { total.push(v); return total }, [])
@@ -38,7 +38,9 @@ program
 		return total
 	}, {})
 	.option('--build <never|always|lazy>', 'Specify when to build the docker container, lazy (the default) compares the last modified time stamp', 'lazy')
-	.option('-d, --debug', 'Show more detailed errors')
+	.option('--debug', 'Show more detailed errors')
+	.option('--debug-settings', 'List current configuration')
+	.option('--debug-own-settings', 'List current configuration (only profile values, no defaults)')
 	.parse(process.argv);
 
 
@@ -50,6 +52,14 @@ program
 var inputRefs = new Map(); // Parsed input references if `session.settings.merge.enabled`
 
 Promise.resolve()
+	// Load profiles {{{
+	.then(()=> i3.loadConfig(program.args, false))
+	.then(settings => {
+		if (program.debugOwnSettings) i3.log('Settings (no defaults):', settings);
+		Object.assign(i3.settings, settings); // Apply settings
+		if (program.debugSettings) i3.log('Settings:', i3.settings);
+	})
+	// }}}
 	// Validate settings {{{
 	.then(()=> {
 		if (!program.action) throw new Error('Action must be specified via "--action name"');
