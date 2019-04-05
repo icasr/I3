@@ -4,16 +4,16 @@ This section details the development process for the I3 project.
 It is understood that the I3 proof-of-concept is likely to take many iterations to perfect with the refinements to the manifest, worker layout and other tooling to change along the way.
 
 
-Creation of CLI proof-of-concept
---------------------------------
+Creation of CLI proof-of-concept (complete)
+-------------------------------------------
 The first step for the I3 project will be to create a command line interface (CLI) program which implements the base standard.
 Since CLI applications are easier to develop and debug this should test the [manifest specification](./manifest.md) against CREBP's existing modules before promoting the standard to a wider audience.
 
 This initial stage will include the task of creating the base project, implementing the manifest schema and testing against a selection of simple workers.
 
 
-Scenario testing
-----------------
+Scenario testing (in progress)
+------------------------------
 The next stage is using the CLI tool to run though a set scenario and testing the viability at each stage.
 
 A proposed scenario would be as follows:
