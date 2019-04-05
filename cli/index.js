@@ -24,6 +24,10 @@ function I3() {
 				fields: ['title'], // What fields to compare against when tracking a merge
 				nonMatch: 'remove', // How to treat non-matching references. 'remove' = remove the incomming reference entirely, 'keep' = copy what we have into the output, 'keepDigest' = same as keep but only retain the fields listed in merge.fields
 			},
+			logging: {
+				prefix: '',
+				quiet: false,
+			},
 		},
 	};
 
@@ -156,6 +160,17 @@ function I3() {
 		if (ref.pages) out.push(`pp. ${ref.pages}`);
 
 		return out.join(' ');
+	};
+
+
+	/**
+	* Utility function to log to STDERR
+	* This function automatically adds prefixes and verbosity options
+	* @param {*} msg... Strings or objects to log
+	*/
+	i3.log = (...msg) => {
+		if (i3.settings.settings.logging.quiet) return; // Do nothing if in quiet mode
+		console.warn.apply(i3, i3.settings.settings.logging.prefix ? [i3.settings.settings.logging.prefix].concat(msg) : msg);
 	};
 
 	return i3;

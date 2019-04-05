@@ -51,20 +51,20 @@ var inputRefs = new Map(); // Parsed input references if `session.settings.merge
 Promise.resolve()
 	// Validate settings {{{
 	.then(()=> {
-		if (!program.action) throw 'Action must be specified via "--action name"';
-		if (!program.input.length) throw 'At least one input file must be specified via "--input path"';
-		if (!program.output.length) throw 'At least one output file must be specified via "--input path"';
+		if (!program.action) throw new Error('Action must be specified via "--action name"');
+		if (!program.input || !program.input.length) throw new Error('At least one input file must be specified via "--input path"');
+		if (!program.output || !program.output.length) throw new Error('At least one output file must be specified via "--input path"');
 		return {};
 	})
 	// }}}
 	// Fetch the action - URL, Git, path {{{
 	.then(session => {
 		if (/^https?:\/\//.test(program.action)) {
-			throw 'Fetching apps from URLs is not yet supported';
+			throw new Error('Fetching apps from URLs is not yet supported');
 		} else if (/^git\+/.test(program.action)) {
-			throw 'Fetching apps from Git URLs is not yet supported';
+			throw new Error('Fetching apps from Git URLs is not yet supported');
 		} else {
-			if (program.verbose) console.log(`Examining directory "${program.action}"`);
+			if (program.verbose) i3.log(`Examining directory "${program.action}"`);
 			return i3.stat(program.action)
 				.catch(e => { throw `Cannot find I3 compatible app at "${program.action}"` })
 				.then(manifest => ({
@@ -78,7 +78,7 @@ Promise.resolve()
 	// }}}
 	// Validate that the manifest {{{
 	.then(async (session) => {
-		if (program.verbose) console.log(`Validating manifest "${session.manifest.path}"`);
+		if (program.verbose) i3.log(`Validating manifest "${session.manifest.path}"`);
 		await i3.validate(session.manifest.path);
 		return session;
 	})
@@ -101,7 +101,7 @@ Promise.resolve()
 	// }}}
 	// Validate final settings object {{{
 	.then(session => {
-		if (!['remove', 'keep', 'keepDigest'].includes(session.settings.merge.nonMatch)) throw 'The setting "merge.nonMatch" can only be one of: remove, keep, keepDigest';
+		if (!['remove', 'keep', 'keepDigest'].includes(session.settings.merge.nonMatch)) throw new Error('The setting "merge.nonMatch" can only be one of: remove, keep, keepDigest');
 		return session;
 	})
 	// }}}
@@ -124,10 +124,10 @@ Promise.resolve()
 					matches = true;
 					break;
 			}
-			if (program.verbose >= 2) console.log(`Checking input method #${index + 1} / ${inputs.length}, ${matches ? 'accepted' : 'failed'}`);
+			if (program.verbose >= 2) i3.log(`Checking input method #${index + 1} / ${inputs.length}, ${matches ? 'accepted' : 'failed'}`);
 			return matches;
 		});
-		if (!session.input) throw 'No valid worker input methods found';
+		if (!session.input) throw new Error('No valid worker input methods found');
 
 		var outputs = _.castArray(session.manifest.outputs);
 		session.output = outputs.find((i, index) => {
@@ -143,10 +143,10 @@ Promise.resolve()
 					matches = micromatch.every(program.output[0], i.accepts);
 					break;
 			}
-			if (program.verbose >= 2) console.log(`Checking output method #${index + 1} / ${outputs.length}, ${matches ? 'accepted' : 'failed'}`);
+			if (program.verbose >= 2) i3.log(`Checking output method #${index + 1} / ${outputs.length}, ${matches ? 'accepted' : 'failed'}`);
 			return matches;
 		});
-		if (!session.output) throw 'No valid worker output methods found';
+		if (!session.output) throw new Error('No valid worker output methods found');
 
 		return session;
 	})
@@ -157,7 +157,7 @@ Promise.resolve()
 			.then(path => _.set(session, 'workspace', {path}))
 	)
 	.then(session => {
-		if (program.verbose) console.log(`Using work directory "${session.workspace.path}"`);
+		if (program.verbose) i3.log(`Using work directory "${session.workspace.path}"`);
 		return session;
 	})
 	// }}}
@@ -168,18 +168,18 @@ Promise.resolve()
 			var dst = `${session.workspace.path}/${file}`;
 			switch (session.input.type) {
 				case 'citations':
-					if (program.verbose) console.log(`Converting input citation library "${src}" -> "${dst}"`);
+					if (program.verbose) i3.log(`Converting input citation library "${src}" -> "${dst}"`);
 					return reflib.promises.parseFile(src, session.settings.input) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
 						.then(refs => {
 							if (session.settings.merge.enabled) { // We will merge later - hold the parsed refs in memory
 								refs.forEach(ref => {
 									var refHash = i3.hashObject(_.pick(ref, session.settings.merge.fields));
 									if (session.settings.merge.dupes == 'warn' && inputRefs.has(refHash)) {
-										console.log('Duplicate citation warning:', i3.readableCitation(ref));
+										i3.log('Duplicate citation warning:', i3.readableCitation(ref));
 									} else if (session.settings.merge.dupes == 'stop' && inputRefs.has(refHash)) {
-										console.log('Input contains duplicates. Deduplicate before contunining');
-										console.log('Stopped on citation:', i3.readableCitation(ref));
-										throw 'Duplicates';
+										i3.log('Input contains duplicates. Deduplicate before contunining');
+										i3.log('Stopped on citation:', i3.readableCitation(ref));
+										throw new Error('Duplicates');
 									}
 									inputRefs.set(refHash, ref);
 								});
@@ -189,7 +189,7 @@ Promise.resolve()
 						.then(refs => reflib.promises.outputFile(dst, refs));
 					break;
 				case 'other':
-					if (program.verbose) console.log(`Copying input file "${src}" -> "${dst}"`);
+					if (program.verbose) i3.log(`Copying input file "${src}" -> "${dst}"`);
 					return new Promise((resolve, reject) => {
 						fs.createReadStream(src)
 							.pipe(fs.createWriteStream(dst))
@@ -254,13 +254,13 @@ Promise.resolve()
 	// Build the worker {{{
 	.then(session => new Promise((resolve, reject) => {
 		if (!program.build || program.build == 'never') {
-			if (program.verbose >= 2) console.log(`Skipping Docker build of container "${session.manifest.worker.container}"`);
+			if (program.verbose >= 2) i3.log(`Skipping Docker build of container "${session.manifest.worker.container}"`);
 			return resolve(session);
 		}
 
 		process.chdir(session.worker.path);
 
-		if (program.verbose) console.log(`Building Docker container "${session.manifest.worker.container}"`);
+		if (program.verbose) i3.log(`Building Docker container "${session.manifest.worker.container}"`);
 		var ps = spawn('docker', ['build', `--tag=${session.manifest.worker.container}`, '.'], {stdio: 'inherit'});
 		ps.on('close', code => {
 			if (code != 0) return reject(`Docker-build exited with non-zero exit code: ${code}`);
@@ -315,7 +315,7 @@ Promise.resolve()
 	.then(session => new Promise((resolve, reject) => {
 		debug('Running session', session);
 
-		if (program.verbose >= 3) console.log('Running Docker as:', ['docker'].concat(session.docker.args).join(' '));
+		if (program.verbose >= 3) i3.log('Running Docker as:', ['docker'].concat(session.docker.args).join(' '));
 
 		var ps = spawn('docker', session.docker.args, {stdio: 'inherit'});
 
@@ -332,7 +332,7 @@ Promise.resolve()
 			var dst = program.output[fileIndex];
 			switch (session.output.type) {
 				case 'citations':
-					if (program.verbose) console.log(`Converting output citation library "${src}" -> "${dst}"`);
+					if (program.verbose) i3.log(`Converting output citation library "${src}" -> "${dst}"`);
 
 					return reflib.promises.parseFile(src, session.settings.outputTransform) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
 						.then(refs => { // Attempt to merge?
@@ -358,7 +358,7 @@ Promise.resolve()
 						.then(refs => reflib.promises.outputFile(dst, refs, session.settings.output));
 					break;
 				case 'other':
-					if (program.verbose) console.log(`Copying output file "${src}" -> "${dst}"`);
+					if (program.verbose) i3.log(`Copying output file "${src}" -> "${dst}"`);
 					return new Promise((resolve, reject) => {
 						fs.createReadStream(src)
 							.pipe(fs.createWriteStream(dst))
