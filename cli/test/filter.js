@@ -33,7 +33,7 @@ describe('Test filter App via CLI', function() {
 
 	it('should launch the process and pass through data unedited', ()=>
 		runner([
-			'../cli/app.js',
+			'../cli/i3',
 			'-vvv',
 			'--action=../apps/filter',
 			`--input=${inputFile}`,
@@ -48,7 +48,7 @@ describe('Test filter App via CLI', function() {
 
 	it('should launch the process and accept back filtered data', ()=>
 		runner([
-			'../cli/app.js',
+			'../cli/i3',
 			'-vvv',
 			'--action=../apps/filter',
 			'--setting=fields=title,year',
@@ -70,7 +70,7 @@ describe('Test filter App via CLI', function() {
 
 	it('should launch the process and merge back filtered data', ()=>
 		runner([
-			'../cli/app.js',
+			'../cli/i3',
 			'-vvv',
 			'--action=../apps/filter',
 			'--setting=fields=title,year',

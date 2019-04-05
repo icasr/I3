@@ -19,7 +19,7 @@ describe('Test passthru App via CLI', function() {
 
 	it('should launch the process and pass through data unedited', done => {
 		var ps = spawn('node', [
-			'../cli/app.js',
+			'../cli/i3',
 			'-vvv',
 			'--action=../apps/passthru',
 			`--input=${inputFile}`,
@@ -38,7 +38,7 @@ describe('Test passthru App via CLI', function() {
 
 	it('should launch the process and return a subset of fields', done => {
 		var ps = spawn('node', [
-			'../cli/app.js',
+			'../cli/i3',
 			'-vvv',
 			'--action=../apps/passthru',
 			`--input=${inputFile}`,

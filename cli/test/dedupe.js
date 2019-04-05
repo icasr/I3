@@ -20,7 +20,7 @@ describe('Test dedupe App via CLI', function() {
 
 	it('should launch the process and mark references as duplicates', done => {
 		var ps = spawn('node', [
-			'../cli/app.js',
+			'../cli/i3',
 			'-vvv',
 			`--action=${dedupePath}`,
 			`--input=${inputFile}`,
