@@ -53,9 +53,33 @@ Promise.resolve()
 	// Load profiles {{{
 	.then(()=> i3.loadConfig(program.args, false))
 	.then(settings => {
-		if (program.debugOwnSettings) i3.log('Settings (no defaults):', settings);
+		if (program.debugOwnSettings) i3.log(0, 'Settings (no defaults):', settings);
 		Object.assign(i3.settings, settings); // Apply settings
-		if (program.debugSettings) i3.log('Settings:', i3.settings);
+		if (program.debugSettings) i3.log(0, 'Settings:', i3.settings);
+	})
+	// }}}
+	// Map settings to I3 instance {{{
+	.then(()=> {
+		// Move CLI settings into I3 {{{
+		i3.settings.verbose = program.verbose;
+		// }}}
+
+		// Move i3 settings into CLI {{{
+		// Technically the profile is allowed to overide the CLI so here we support importing settings from the profile file which arn't really specific to I3
+		// We also remove the key from I3.settings to keep things clean
+		[
+			{profileKey: 'action', cliKey: 'action'},
+			{profileKey: 'input', cliKey: 'input'},
+			{profileKey: 'output', cliKey: 'output'},
+			{profileKey: 'settings', cliKey: 'setting'},
+			{profileKey: 'build', cliKey: 'build'},
+			{profileKey: 'debug', cliKey: 'debug'},
+		].forEach(s => {
+			if (!_.has(i3.settings, s.profileKey)) return;
+			_.set(program, s.cliKey, _.get(i3.settings, s.profileKey))
+			_.unset(i3.settings, s.profileKey);
+		})
+		// }}}
 	})
 	// }}}
 	// Validate settings {{{
@@ -73,7 +97,7 @@ Promise.resolve()
 		} else if (/^git\+/.test(program.action)) {
 			throw new Error('Fetching apps from Git URLs is not yet supported');
 		} else {
-			if (program.verbose) i3.log(`Examining directory "${program.action}"`);
+			i3.log(1, `Retrieving manifest from "${program.action}"`);
 			return i3.manifest.get(program.action)
 				.catch(e => { throw `Cannot find I3 compatible app at "${program.action}"` })
 				.then(manifest => ({
@@ -87,7 +111,7 @@ Promise.resolve()
 	// }}}
 	// Validate that the manifest {{{
 	.then(session => {
-		if (program.verbose) i3.log(`Validating manifest "${session.manifest.path}"`);
+		i3.log(1, `Validating manifest "${session.manifest.path}"`);
 		return i3.manifest.validate(session.manifest.path).then(()=> session);
 	})
 	// }}}
@@ -132,7 +156,7 @@ Promise.resolve()
 					matches = true;
 					break;
 			}
-			if (program.verbose >= 2) i3.log(`Checking input method #${index + 1} / ${inputs.length}, ${matches ? 'accepted' : 'failed'}`);
+			i3.log(2, `Checking input method #${index + 1} / ${inputs.length}, ${matches ? 'accepted' : 'failed'}`);
 			return matches;
 		});
 		if (!session.input) throw new Error('No valid worker input methods found');
@@ -151,7 +175,7 @@ Promise.resolve()
 					matches = micromatch.every(program.output[0], i.accepts);
 					break;
 			}
-			if (program.verbose >= 2) i3.log(`Checking output method #${index + 1} / ${outputs.length}, ${matches ? 'accepted' : 'failed'}`);
+			i3.log(2, `Checking output method #${index + 1} / ${outputs.length}, ${matches ? 'accepted' : 'failed'}`);
 			return matches;
 		});
 		if (!session.output) throw new Error('No valid worker output methods found');
@@ -165,7 +189,7 @@ Promise.resolve()
 			.then(path => _.set(session, 'workspace', {path}))
 	)
 	.then(session => {
-		if (program.verbose) i3.log(`Using work directory "${session.workspace.path}"`);
+		i3.log(1, `Using work directory "${session.workspace.path}"`);
 		return session;
 	})
 	// }}}
@@ -176,17 +200,17 @@ Promise.resolve()
 			var dst = `${session.workspace.path}/${file}`;
 			switch (session.input.type) {
 				case 'citations':
-					if (program.verbose) i3.log(`Converting input citation library "${src}" -> "${dst}"`);
+					i3.log(1, `Converting input citation library "${src}" -> "${dst}"`);
 					return reflib.promises.parseFile(src, session.settings.input) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
 						.then(refs => {
 							if (session.settings.merge.enabled) { // We will merge later - hold the parsed refs in memory
 								refs.forEach(ref => {
 									var refHash = i3.hashObject(_.pick(ref, session.settings.merge.fields));
 									if (session.settings.merge.dupes == 'warn' && inputRefs.has(refHash)) {
-										i3.log('Duplicate citation warning:', i3.readableCitation(ref));
+										i3.log(0, 'Duplicate citation warning:', i3.readableCitation(ref));
 									} else if (session.settings.merge.dupes == 'stop' && inputRefs.has(refHash)) {
-										i3.log('Input contains duplicates. Deduplicate before contunining');
-										i3.log('Stopped on citation:', i3.readableCitation(ref));
+										i3.log(0, 'Input contains duplicates. Deduplicate before contunining');
+										i3.log(0, 'Stopped on citation:', i3.readableCitation(ref));
 										throw new Error('Duplicates');
 									}
 									inputRefs.set(refHash, ref);
@@ -197,7 +221,7 @@ Promise.resolve()
 						.then(refs => reflib.promises.outputFile(dst, refs));
 					break;
 				case 'other':
-					if (program.verbose) i3.log(`Copying input file "${src}" -> "${dst}"`);
+					i3.log(1, `Copying input file "${src}" -> "${dst}"`);
 					return new Promise((resolve, reject) => {
 						fs.createReadStream(src)
 							.pipe(fs.createWriteStream(dst))
@@ -212,7 +236,7 @@ Promise.resolve()
 	.then(session => i3.docker.needsBuild(session.worker.path).then(needed => _.set(session, 'needsBuild', needed))
 	.then(session => {
 		if (!session.needsBuild) {
-			if (program.verbose >= 2) i3.log(`Skipping Docker build of container "${session.manifest.worker.container}"`);
+			i3.log(2, `Skipping Docker build of container "${session.manifest.worker.container}"`);
 			return session; // Doesn't need building - pass session on and skip
 		} else {
 			return i3.docker.build(path, session.manifest).then(()=> session);
@@ -266,7 +290,7 @@ Promise.resolve()
 	.then(session => new Promise((resolve, reject) => {
 		i3.log(2, 'Running session', session);
 
-		if (program.verbose >= 3) i3.log('Running Docker as:', ['docker'].concat(session.docker.args).join(' '));
+		i3.log(3, 'Running Docker as:', ['docker'].concat(session.docker.args).join(' '));
 
 		var ps = spawn('docker', session.docker.args, {stdio: 'inherit'});
 
@@ -283,7 +307,7 @@ Promise.resolve()
 			var dst = program.output[fileIndex];
 			switch (session.output.type) {
 				case 'citations':
-					if (program.verbose) i3.log(`Converting output citation library "${src}" -> "${dst}"`);
+					i3.log(1, `Converting output citation library "${src}" -> "${dst}"`);
 
 					return reflib.promises.parseFile(src, session.settings.outputTransform) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
 						.then(refs => { // Attempt to merge?
@@ -309,7 +333,7 @@ Promise.resolve()
 						.then(refs => reflib.promises.outputFile(dst, refs, session.settings.output));
 					break;
 				case 'other':
-					if (program.verbose) i3.log(`Copying output file "${src}" -> "${dst}"`);
+					i3.log(1, `Copying output file "${src}" -> "${dst}"`);
 					return new Promise((resolve, reject) => {
 						fs.createReadStream(src)
 							.pipe(fs.createWriteStream(dst))
