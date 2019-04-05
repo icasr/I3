@@ -10,10 +10,12 @@ var i3 = function I3() {
 	var i3 = this;
 
 	i3.settings = {
+		debug: false,
 		docker: {
 			strategy: 'lazy',
 			markerFile: '.i3-docker-build',
 		},
+		input: [],
 		logging: {
 			prefix: '',
 		},
@@ -26,6 +28,7 @@ var i3 = function I3() {
 			fields: ['title'], // What fields to compare against when tracking a merge
 			nonMatch: 'remove', // How to treat non-matching references. 'remove' = remove the incomming reference entirely, 'keep' = copy what we have into the output, 'keepDigest' = same as keep but only retain the fields listed in merge.fields
 		},
+		output: [],
 		outputTransform: { // Reading back files from worker - passed to reflib.parseFile()
 			fields: true, // Accept all fields back - when the driver supports it
 		},
@@ -71,7 +74,6 @@ var i3 = function I3() {
 				}, {})
 			)
 			.then(settings => mergeBase ? Object.assign(i3.settings, settings) : settings)
-
 
 
 	/**

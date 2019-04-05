@@ -2,44 +2,15 @@
 
 var _ = require('lodash');
 var colors = require('chalk');
+var commander = require('commander');
 var fs = require('fs').promises;
 var fspath = require('path');
 var i3 = new require('.')();
 var micromatch = require('micromatch');
-var program = require('commander');
 var promisify = require('util').promisify;
 var reflib = require('reflib');
 var spawn = require('child_process').spawn;
 var temp = require('temp');
-
-program
-	.version(require('./package.json').version)
-	.usage('-a <action> -i <input-file> -o <output-file> [profile...]')
-	.description('CLI to easily automate systematic review tools')
-	.option('-i, --input <file>', 'Input file, use multiple times for more file inputs', (v, total) => { total.push(v); return total }, [])
-	.option('-o, --output <file>', 'Output file, use multiple times for more file outputs', (v, total) => { total.push(v); return total }, [])
-	.option('-a, --action <name>', 'The action to perform. Can be a URL or a short name to an already retreieved I3 worker')
-	.option('-v, --verbose', 'Be verbose - use multiple to increase verbosity', (v, total) => total + 1, 0)
-	.option('-s, --setting <key=val>', 'Set an option for the worker (dotted notation accepted)', (v, total) => {
-		var bits = [key, val] = v.split(/\s*=\s*/, 2);
-		if (bits.length == 1) { // Assume we are just setting a flag to true
-			_.set(total, key, true);
-		}  else if (bits.length == 2) { // Assume key=val
-			_.set(total, key, // Set the key, accepting various shorthand boolean values
-				val === 'true' ? true
-				: val === 'false' ? false
-				: val
-			);
-		} else {
-			throw `Failed to parse setting "${v}"`;
-		}
-		return total
-	}, {})
-	.option('--build <never|always|lazy>', 'Specify when to build the docker container, lazy (the default) compares the last modified time stamp', 'lazy')
-	.option('--debug', 'Show more detailed errors')
-	.option('--debug-settings', 'List current configuration')
-	.option('--debug-own-settings', 'List current configuration (only profile values, no defaults)')
-	.parse(process.argv);
 
 
 /**
@@ -49,53 +20,95 @@ program
 */
 var inputRefs = new Map(); // Parsed input references if `i3.settings.merge.enabled`
 
-Promise.resolve()
+Promise.resolve({}) // Setup waterfall session (gets populated at each successive stage with more data)
+	// Read in original command line {{{
+	.then(session => {
+		var cli = commander
+			.version(require('./package.json').version)
+			.usage('-a <action> -i <input-file> -o <output-file> [profile...]')
+			.description('CLI to easily automate systematic review tools')
+			.option('-i, --input <file>', 'Input file, use multiple times for more file inputs', (v, total) => { total.push(v); return total }, [])
+			.option('-o, --output <file>', 'Output file, use multiple times for more file outputs', (v, total) => { total.push(v); return total }, [])
+			.option('-a, --action <name>', 'The action to perform. Can be a URL or a short name to an already retreieved I3 worker')
+			.option('-v, --verbose', 'Be verbose - use multiple to increase verbosity', (v, total) => total + 1, 0)
+			.option('-s, --setting <key=val>', 'Set an option for the worker (dotted notation accepted)', (v, total) => {
+				var bits = [key, val] = v.split(/\s*=\s*/, 2);
+				if (bits.length == 1) { // Assume we are just setting a flag to true
+					_.set(total, key, true);
+				}  else if (bits.length == 2) { // Assume key=val
+					_.set(total, key, // Set the key, accepting various shorthand boolean values
+						val === 'true' ? true
+						: val === 'false' ? false
+						: val
+					);
+				} else {
+					throw `Failed to parse setting "${v}"`;
+				}
+				return total
+			}, {})
+			.option('--build <never|always|lazy>', 'Specify when to build the docker container, lazy (the default) compares the last modified time stamp', 'lazy')
+			.option('--debug', 'Show more detailed errors')
+			.option('--debug-settings', 'List current configuration')
+			.option('--debug-profile-settings', 'List current configuration (only profile values, no defaults)')
+			.parse(process.argv);
+
+		return _.set(session, 'cli', cli);
+	})
+	// }}}
 	// Load profiles {{{
-	.then(()=> i3.loadConfig(program.args, false))
-	.then(settings => {
-		if (program.debugOwnSettings) i3.log(0, 'Settings (no defaults):', settings);
-		_.merge(i3.settings, settings); // Apply settings
+	.then(session => i3.loadConfig(session.cli.args, false).then(profileSettings => _.set(session, 'profileSettings', profileSettings)))
+	.then(session => {
+		if (session.cli.debugProfileSettings) i3.log(0, 'Settings (from profile):', session.profileSettings);
+		_.merge(i3.settings, session.profileSettings); // Apply settings
+		return session;
 	})
 	// }}}
 	// Map settings to I3 {{{
-	.then(()=> {
+	.then(session => {
 		[
-			{cliKey: 'verbose', i3Key: 'verbose'},
+			{cliKey: 'action', i3Key: 'action'},
+			{cliKey: 'build', i3Key: 'docker.strategy'},
+			{cliKey: 'debug', i3Key: 'debug'},
 			{cliKey: 'input', i3Key: 'input'},
 			{cliKey: 'output', i3Key: 'output'},
-			{cliKey: 'build', i3Key: 'docker.strategy'},
-			{cliKey: 'action', i3Key: 'action'},
+			{cliKey: 'verbose', i3Key: 'verbose'},
 		].forEach(s => {
-			if (!program[s.cliKey]) return;
-			_.set(i3.settings, s.i3Key, program[s.cliKey]);
+			if (!_.has(session.cli, s.cliKey) || _.isEmpty(_.get(session.cli, s.cliKey))) return;
+			_.set(i3.settings, s.i3Key, _.get(session.cli, s.cliKey));
 		})
+		return session;
 	})
-	.then(()=> program.debugSettings && i3.log(0, 'Settings:', i3.settings))
+	.then(session => {
+		i3.settings.input = _.castArray(i3.settings.input);
+		i3.settings.output = _.castArray(i3.settings.output);
+		i3.settings.verbose = parseInt(i3.settings.verbose);
+		if (session.cli.debugSettings) i3.log(0, 'Settings (final):', i3.settings)
+		return session;
+	})
 	// }}}
 	// Validate settings {{{
-	.then(()=> {
-		if (!program.action) throw new Error('Action must be specified via "--action name"');
-		if (!program.input || !program.input.length) throw new Error('At least one input file must be specified via "--input path"');
-		if (!program.output || !program.output.length) throw new Error('At least one output file must be specified via "--input path"');
-		return {};
+	.then(session => {
+		if (!i3.settings.action) throw new Error('Action must be specified via "--action name" or in a profile');
+		if (!i3.settings.input || !i3.settings.input.length) throw new Error('At least one input file must be specified via "--input path" or in a profile');
+		if (!i3.settings.output || !i3.settings.output.length) throw new Error('At least one output file must be specified via "--output path" or in a profile');
+		return session;
 	})
 	// }}}
 	// Fetch the action - URL, Git, path {{{
 	.then(session => {
-		if (/^https?:\/\//.test(program.action)) {
+		if (/^https?:\/\//.test(i3.settings.action)) {
 			throw new Error('Fetching apps from URLs is not yet supported');
-		} else if (/^git\+/.test(program.action)) {
+		} else if (/^git\+/.test(i3.settings.action)) {
 			throw new Error('Fetching apps from Git URLs is not yet supported');
 		} else {
-			i3.log(1, `Retrieving manifest from "${program.action}"`);
-			return i3.manifest.get(program.action)
-				.catch(e => { throw `Cannot find I3 compatible app at "${program.action}"` })
-				.then(manifest => ({
-					manifest,
-					worker: {
-						path: fspath.resolve(program.action),
-					},
-				}))
+			i3.log(1, `Retrieving manifest from "${i3.settings.action}"`);
+			return i3.manifest.get(i3.settings.action)
+				.catch(e => { throw `Cannot find I3 compatible app at "${i3.settings.action}"` })
+				.then(manifest => {
+					_.set(session, 'manifest', manifest);
+					_.set(session, 'worker', {path: fspath.resolve(i3.settings.action)});
+					return session;
+				});
 		}
 	})
 	// }}}
@@ -113,7 +126,7 @@ Promise.resolve()
 			.forEach((v, k) => _.set(i3.settings, k, v.default));
 
 		// Override everything with user supplied settings via the CLI
-		_.merge(i3.settings, program.setting);
+		_.merge(i3.settings, session.cli.setting);
 
 		return session;
 	})
@@ -133,11 +146,11 @@ Promise.resolve()
 				case 'citations':
 					matches = (
 						reflib.supported.find(rl => rl.id == i.format) // Find first supported Reflib format
-						&& program.input.length == (_.isString(i.filename) ? 1 : i.filename.length)
+						&& i3.settings.input.length == (_.isString(i.filename) ? 1 : i.filename.length)
 					);
 					break;
 				case 'other':
-					matches = micromatch.every(program.input, i.accepts);
+					matches = micromatch.every(i3.settings.input, i.accepts);
 					break;
 				case 'manual':
 					matches = true;
@@ -155,11 +168,11 @@ Promise.resolve()
 				case 'citations':
 					matches = (
 						reflib.supported.find(rl => rl.id == i.format) // Find first supported Reflib format
-						&& program.output.length == (_.isString(i.filename) ? 1 : i.filename.length)
+						&& i3.settings.output.length == (_.isString(i.filename) ? 1 : i.filename.length)
 					);
 					break;
 				case 'other':
-					matches = micromatch.every(program.output[0], i.accepts);
+					matches = micromatch.every(i3.settings.output[0], i.accepts);
 					break;
 			}
 			i3.log(2, `Checking output method #${index + 1} / ${outputs.length}, ${matches ? 'accepted' : 'failed'}`);
@@ -183,7 +196,7 @@ Promise.resolve()
 	// Convert input files + copy into workspace {{{
 	.then(session =>
 		Promise.all(_.castArray(session.input.filename).map((file, fileIndex) => {
-			var src = program.input[fileIndex];
+			var src = i3.settings.input[fileIndex];
 			var dst = `${session.workspace.path}/${file}`;
 			switch (session.input.type) {
 				case 'citations':
@@ -291,7 +304,7 @@ Promise.resolve()
 	.then(session =>
 		Promise.all(_.castArray(session.output.filename).map((file, fileIndex) => {
 			var src = `${session.workspace.path}/${file}`;
-			var dst = program.output[fileIndex];
+			var dst = i3.settings.output[fileIndex];
 			switch (session.output.type) {
 				case 'citations':
 					i3.log(1, `Converting output citation library "${src}" -> "${dst}"`);
@@ -334,7 +347,7 @@ Promise.resolve()
 	// End {{{
 	.then(()=> process.exit(0))
 	.catch(err => {
-		i3.log(colors.red('ERROR'), program.debug ? err.stack : err.toString());
+		i3.log(colors.red('ERROR'), i3.settings.debug ? err.stack : err.toString());
 		process.exit(1);
 	})
 	// }}}
