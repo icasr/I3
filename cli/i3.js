@@ -37,6 +37,7 @@ program
 		return total
 	}, {})
 	.option('--build <never|always|lazy>', 'Specify when to build the docker container, lazy (the default) compares the last modified time stamp', 'lazy')
+	.option('-d, --debug', 'Show more detailed errors')
 	.parse(process.argv);
 
 
@@ -371,7 +372,7 @@ Promise.resolve()
 	// End {{{
 	.then(()=> process.exit(0))
 	.catch(err => {
-		console.log(colors.red('ERR'), err.toString());
+		i3.log(colors.red('ERROR'), program.debug ? err.stack : err.toString());
 		process.exit(1);
 	})
 	// }}}
