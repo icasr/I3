@@ -2,6 +2,7 @@ var _ = require('lodash');
 var expect = require('chai').expect;
 var spawn = require('child_process').spawn;
 var reflib = require('reflib');
+var testkit = require('./setup');
 
 var inputFile = 'test/data/dupes.json';
 var outputFile = '/tmp/output.json';
@@ -17,27 +18,26 @@ describe('Test passthru App via CLI', function() {
 		});
 	});
 
-	it('should launch the process and pass through data unedited', done => {
-		var ps = spawn('node', [
+	it('should launch the process and pass through data unedited', ()=>
+		testkit.runner([
 			'../cli/i3',
 			'-vvv',
 			'--action=../apps/passthru',
 			`--input=${inputFile}`,
 			`--output=${outputFile}`,
 			'--setting=merge.enabled=false', // Since its just a copy we can avoid the overhead of merging
-		], {stdio: 'inherit'})
-		ps.on('exit', code => {
-			expect(code).to.be.equal(0);
+		])
+			.then(()=> new Promise((resolve, reject) => {
+				reflib.parseFile(outputFile, (err, outputRefs) => {
+					if (err) return reject(err);
+					expect(inputRefs).to.deep.equal(outputRefs);
+					resolve();
+				});
+			}))
+	);
 
-			reflib.parseFile(outputFile, (err, outputRefs) => {
-				expect(inputRefs).to.deep.equal(outputRefs);
-				done();
-			});
-		});
-	});
-
-	it('should launch the process and return a subset of fields', done => {
-		var ps = spawn('node', [
+	it('should launch the process and return a subset of fields', ()=>
+		testkit.runner([
 			'../cli/i3',
 			'-vvv',
 			'--action=../apps/passthru',
@@ -45,15 +45,14 @@ describe('Test passthru App via CLI', function() {
 			`--output=${outputFile}`,
 			'--setting=output.fields=title,year',
 			'--setting=merge.enabled=false', // Since its just a copy we can avoid the overhead of merging
-		], {stdio: 'inherit'})
-		ps.on('exit', code => {
-			expect(code).to.be.equal(0);
-
-			reflib.parseFile(outputFile, (err, outputRefs) => {
-				expect(inputRefs.map(ref => _.pick(ref, ['title', 'year']))).to.deep.equal(outputRefs);
-				done();
-			});
-		});
-	});
+		])
+			.then(()=> new Promise((resolve, reject) => {
+				reflib.parseFile(outputFile, (err, outputRefs) => {
+					if (err) return reject(err);
+					expect(inputRefs.map(ref => _.pick(ref, ['title', 'year']))).to.deep.equal(outputRefs);
+					resolve();
+				});
+			}))
+	);
 
 });
