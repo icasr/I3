@@ -4,7 +4,7 @@
   "description": "ICASR Integration Engine",
   "main": "index.js",
   "bin": {
-    "i3": "./app.js"
+    "i3": "./i3.js"
   },
   "preferGlobal": true,
   "keywords": [
