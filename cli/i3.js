@@ -17,11 +17,12 @@ var temp = require('temp');
 program
 	.version(require('./package.json').version)
 	.usage('-a <action> -i <input-file> -o <output-file>')
+	.description('CLI to easily automate systematic review tools')
 	.option('-i, --input <file>', 'Input file, use multiple times for more file inputs', (v, total) => { total.push(v); return total }, [])
 	.option('-o, --output <file>', 'Output file, use multiple times for more file outputs', (v, total) => { total.push(v); return total }, [])
 	.option('-a, --action <name>', 'The action to perform. Can be a URL or a short name to an already retreieved I3 worker')
 	.option('-v, --verbose', 'Be verbose - use multiple to increase verbosity', (v, total) => total + 1, 0)
-	.option('-s, --setting <key=val>', 'Set an option for the worker (dotted notation supported)', (v, total) => {
+	.option('-s, --setting <key=val>', 'Set an option for the worker (dotted notation accepted)', (v, total) => {
 		var bits = [key, val] = v.split(/\s*=\s*/, 2);
 		if (bits.length == 1) { // Assume we are just setting a flag to true
 			_.set(total, key, true);
