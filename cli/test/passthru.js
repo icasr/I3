@@ -1,8 +1,8 @@
 var _ = require('lodash');
 var expect = require('chai').expect;
-var spawn = require('child_process').spawn;
+var exec = require('@momsfriendlydevco/exec');
+var mlog = require('mocha-logger');
 var reflib = require('reflib');
-var testkit = require('./setup');
 
 var inputFile = 'test/data/dupes.json';
 var outputFile = '/tmp/output.json';
@@ -19,14 +19,14 @@ describe('Test passthru App via CLI', function() {
 	});
 
 	it('should launch the process and pass through data unedited', ()=>
-		testkit.runner([
-			'../cli/i3',
+		exec([
+			`${__dirname}/../i3.js`,
 			'-vv',
 			'--action=../apps/passthru',
 			`--input=${inputFile}`,
 			`--output=${outputFile}`,
 			'--setting=merge.enabled=false', // Since its just a copy we can avoid the overhead of merging
-		])
+		], {log: mlog.log})
 			.then(()=> new Promise((resolve, reject) => {
 				reflib.parseFile(outputFile, (err, outputRefs) => {
 					if (err) return reject(err);
@@ -37,15 +37,15 @@ describe('Test passthru App via CLI', function() {
 	);
 
 	it('should launch the process and return a subset of fields', ()=>
-		testkit.runner([
-			'../cli/i3',
+		exec([
+			`${__dirname}/../i3.js`,
 			'-vv',
 			'--action=../apps/passthru',
 			`--input=${inputFile}`,
 			`--output=${outputFile}`,
 			'--setting=output.fields=title,year',
 			'--setting=merge.enabled=false', // Since its just a copy we can avoid the overhead of merging
-		])
+		], {log: mlog.log})
 			.then(()=> new Promise((resolve, reject) => {
 				reflib.parseFile(outputFile, (err, outputRefs) => {
 					if (err) return reject(err);
