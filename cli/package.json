@@ -23,7 +23,7 @@
     "globby": "^9.2.0",
     "lodash": "^4.17.11",
     "micromatch": "^3.1.10",
-    "reflib": "^1.7.0",
+    "reflib": "^1.7.1",
     "temp": "^0.9.0"
   },
   "devDependencies": {
