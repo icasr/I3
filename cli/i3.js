@@ -73,7 +73,7 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 			{cliKey: 'output', i3Key: 'output'},
 			{cliKey: 'verbose', i3Key: 'verbose'},
 		].forEach(s => {
-			if (!_.has(session.cli, s.cliKey) || _.isEmpty(_.get(session.cli, s.cliKey))) return;
+			if (!_.has(session.cli, s.cliKey) || _.isUndefined(_.get(session.cli, s.cliKey))) return;
 			_.set(i3.settings, s.i3Key, _.get(session.cli, s.cliKey));
 		})
 		return session;
