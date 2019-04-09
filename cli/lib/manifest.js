@@ -50,18 +50,22 @@ var i3Manifest = function i3Manifest(i3) {
 				// }}}
 
 				// Check inputs {{{
-				(m.inputs ? _.castArray(m.inputs) : []).forEach((i, index) => {
-					['type'].forEach(f => {
-						if (!_.has(i, f)) err.push(`Input #${index} should have a '${f}' field`);
-					})
+				if (!_.isUndefined(m.inputs)) {
+					err.push('The input array must be specified, even if it is an empty array');
+				} else {
+					(_.castArray(m.inputs)).forEach((i, index) => {
+						['type'].forEach(f => {
+							if (!_.has(i, f)) err.push(`Input #${index} should have a '${f}' field`);
+						})
 
-					if (i.type == 'citations') {
-						if (!_.has(i, 'filename')) err.push(`Input #${index} should specify a filename if the type is "citations"`);
-						if (!_.has(i, 'format')) err.push(`Input #${index} should specify a citation library format`);
-					} else if (i.type == 'other') {
-						if (!_.has(i, 'accepts')) err.push(`Input #${index} should specify a glob or array of globs if the type is "other"`);
-					}
-				});
+						if (i.type == 'citations') {
+							if (!_.has(i, 'filename')) err.push(`Input #${index} should specify a filename if the type is "citations"`);
+							if (!_.has(i, 'format')) err.push(`Input #${index} should specify a citation library format`);
+						} else if (i.type == 'other') {
+							if (!_.has(i, 'accepts')) err.push(`Input #${index} should specify a glob or array of globs if the type is "other"`);
+						}
+					});
+				}
 				// }}}
 
 				// Check worker {{{
