@@ -9,7 +9,7 @@ var dedupePath = '/home/mc/Papers/Projects/Node/sra-dedupe'; // Needs to point t
 var inputFile = 'test/data/dupes.json';
 var outputFile = '/tmp/output.json';
 
-describe('Test dedupe App via CLI', function() {
+describe('Dedupe CLI', function() {
 	this.timeout(60 * 1000); // 60s
 
 	var inputRefs;

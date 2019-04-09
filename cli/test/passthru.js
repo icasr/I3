@@ -7,7 +7,7 @@ var reflib = require('reflib');
 var inputFile = 'test/data/dupes.json';
 var outputFile = '/tmp/output.json';
 
-describe('Test passthru App via CLI', function() {
+describe('Passthru CLI', function() {
 	this.timeout(60 * 1000); // 60s
 
 	var inputRefs;

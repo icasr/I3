@@ -7,7 +7,7 @@ var reflib = require('reflib');
 var inputFile = 'test/data/nodupes.json';
 var outputFile = '/tmp/output.json';
 
-describe('Test filter App via CLI', function() {
+describe('Filter CLI', function() {
 	this.timeout(60 * 1000); // 60s
 
 	var inputRefs;
