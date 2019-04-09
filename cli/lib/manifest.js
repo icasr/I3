@@ -33,7 +33,7 @@ var i3Manifest = function i3Manifest(i3) {
 			.then(m => {
 				var errs = [];
 
-				if (!m) throw 'Not a JSON file';
+				if (!m) throw new Error('Not a JSON file');
 
 				// Check for missing fields (dotted notation) {{{
 				['name', 'version', 'description', 'license', 'inputs', 'outputs', 'worker', 'worker.container']
@@ -69,13 +69,13 @@ var i3Manifest = function i3Manifest(i3) {
 				// }}}
 
 				// Check worker {{{
-				if (['docker', 'url'].includes(m.worker.type)) throw 'worker.container can only be "docker" or "url" at this point';
-				if (m.worker.type == 'docker' && !_.has(m, 'worker.container')) throw 'If worker.container == "docker", worker.container must be specified';
-				if (m.worker.type == 'url' && !_.has(m, 'worker.url')) throw 'If worker.container == "url", worker.url must be specified';
-				if (m.command && !_.isArray(m.command)) throw 'worker.command must be an array';
-				if (m.command && m.command.every(i => _.isString(i))) throw 'worker.command must be an array of strings only';
-				if (m.environment && !_.isPlainObject(m.environment)) throw 'worker.envionment must be an object';
-				if (m.environment && _.every(m.environment, (v, k) => _.isString(v) && _.isString(k))) throw 'worker.envionment must be an object of string key / values only';
+				if (['docker', 'url'].includes(m.worker.type)) throw new Error('worker.container can only be "docker" or "url" at this point');
+				if (m.worker.type == 'docker' && !_.has(m, 'worker.container')) throw new Error('If worker.container == "docker", worker.container must be specified');
+				if (m.worker.type == 'url' && !_.has(m, 'worker.url')) throw new Error('If worker.container == "url", worker.url must be specified');
+				if (m.command && !_.isArray(m.command)) throw new Error('worker.command must be an array');
+				if (m.command && m.command.every(i => _.isString(i))) throw new Error('worker.command must be an array of strings only');
+				if (m.environment && !_.isPlainObject(m.environment)) throw new Error('worker.envionment must be an object');
+				if (m.environment && _.every(m.environment, (v, k) => _.isString(v) && _.isString(k))) throw new Error('worker.envionment must be an object of string key / values only');
 				// }}}
 
 				// Check outputs {{{
@@ -86,7 +86,7 @@ var i3Manifest = function i3Manifest(i3) {
 				});
 				// }}}
 
-				if (errs.length) throw errs;
+				if (errs.length) throw new Error(errs);
 			})
 			.catch(e => _.castArray(e));
 
