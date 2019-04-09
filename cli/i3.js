@@ -89,7 +89,6 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 	// Validate settings {{{
 	.then(session => {
 		if (!i3.settings.action) throw new Error('Action must be specified via "--action name" or in a profile');
-		if (!i3.settings.input || !i3.settings.input.length) throw new Error('At least one input file must be specified via "--input path" or in a profile');
 		if (!i3.settings.output || !i3.settings.output.length) throw new Error('At least one output file must be specified via "--output path" or in a profile');
 		return session;
 	})
@@ -159,7 +158,7 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 			i3.log(2, `Checking input method #${index + 1} / ${inputs.length}, ${matches ? 'accepted' : 'failed'}`);
 			return matches;
 		});
-		if (!session.input) throw new Error('No valid worker input methods found');
+		if (!session.input && inputs.length) throw new Error('No valid worker input methods found');
 
 		var outputs = _.castArray(session.manifest.outputs);
 		session.output = outputs.find((i, index) => {
@@ -178,7 +177,7 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 			i3.log(2, `Checking output method #${index + 1} / ${outputs.length}, ${matches ? 'accepted' : 'failed'}`);
 			return matches;
 		});
-		if (!session.output) throw new Error('No valid worker output methods found');
+		if (!session.output && outputs.length) throw new Error('No valid worker output methods found');
 
 		return session;
 	})
@@ -194,8 +193,9 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 	})
 	// }}}
 	// Convert input files + copy into workspace {{{
-	.then(session =>
-		Promise.all(_.castArray(session.input.filename).map((file, fileIndex) => {
+	.then(session => {
+		if (!session.input) return session;
+		return Promise.all(_.castArray(session.input.filename).map((file, fileIndex) => {
 			var src = i3.settings.input[fileIndex];
 			var dst = `${session.workspace.path}/${file}`;
 			switch (session.input.type) {
@@ -230,7 +230,7 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 					});
 			}
 		})).then(()=> session)
-	)
+	})
 	// }}}
 	// Build the worker if needed {{{
 	.then(session => i3.docker.needsBuild(session.worker.path).then(needed => _.set(session, 'needsBuild', needed))
@@ -311,7 +311,7 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 
 					return reflib.promises.parseFile(src, i3.settings.outputTransform) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
 						.then(refs => { // Attempt to merge?
-							if (i3.settings.merge.enabled) { // Perform merge
+							if (session.input && i3.settings.merge.enabled) { // Perform merge
 								return refs.reduce((output, ref) => {
 									var matchingRef = inputRefs.get(i3.hashObject(_.pick(ref, i3.settings.merge.fields)));
 									if (matchingRef) {
