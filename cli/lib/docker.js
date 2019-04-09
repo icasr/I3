@@ -1,6 +1,7 @@
 /**
 * I3 docker library / singleton
 */
+var exec = require('@momsfriendlydevco/exec');
 var fs = require('fs').promises;
 var fspath = require('path');
 var glob = require('globby');
@@ -72,16 +73,31 @@ var i3Docker = function i3Docker(i3) {
 		Promise.resolve()
 			.then(()=> process.chdir(path))
 			.then(()=> manifest ? manifest : i3.manifest.get(path))
-			.then(manifest => {
+			.then(manifest => ()=> {
 				if (i3.settings.verbose) i3.log(`Building Docker container "${manifest.worker.container}"`);
-				var ps = spawn('docker', ['build', `--tag=${manifest.worker.container}`, '.'], {stdio: 'inherit'});
-				ps.on('close', code => {
-					if (code != 0) return reject(`Docker-build exited with non-zero exit code: ${code}`);
-					resolve();
-				});
+				return exec([
+					'docker',
+					'build',
+					`--tag=${manifest.worker.container}`,
+					'.',
+				], {
+					log: i3.log.bind(this, 2),
+					prefixStdout: i3.settings.prefixStdout,
+					prefixStderr: i3.settings.prefixStderr,
+				})
 			});
 
 
+	/**
+	* Execute docker with an array of given arguments
+	* @param {array <string>} args Array of Docker arguments passed onto @momsfriendlydevco/exec
+	*/
+	docker.run = args =>
+		exec(['docker'].concat(args), {
+			log: i3.log.bind(this, 0),
+			prefixStdout: i3.settings.prefixStdout,
+			prefixStderr: i3.settings.prefixStderr,
+		});
 
 	return docker;
 };

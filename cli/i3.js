@@ -239,7 +239,7 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 			i3.log(2, `Skipping Docker build of container "${session.manifest.worker.container}"`);
 			return session; // Doesn't need building - pass session on and skip
 		} else {
-			return i3.docker.build(path, session.manifest).then(()=> session);
+			return i3.docker.build(session.worker.path, session.manifest).then(()=> session);
 		}
 	}))
 	// }}}
@@ -264,8 +264,7 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 
 		session.docker = {
 			args: _([
-				// Docker sub-command
-				'run',
+				'run', // Docker sub-command
 
 				// Docker options including mounts
 				session.manifest.worker.mount ? ['--volume', `${session.workspace.path}:${session.manifest.worker.mount}`] : '',
@@ -287,18 +286,7 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 	})
 	// }}}
 	// Run the worker {{{
-	.then(session => new Promise((resolve, reject) => {
-		i3.log(3, 'Running session', session);
-
-		i3.log(2, 'Running Docker as:', ['docker'].concat(session.docker.args).join(' '));
-
-		var ps = spawn('docker', session.docker.args, {stdio: 'inherit'});
-
-		ps.on('close', code => {
-			if (code != 0) return reject(`Docker-run exited with non-zero exit code: ${code}`);
-			resolve(session);
-		});
-	}))
+	.then(session => i3.docker.run(session.docker.args).then(()=> session))
 	// }}}
 	// Convert output files back to destinations {{{
 	.then(session =>

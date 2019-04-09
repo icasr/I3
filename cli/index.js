@@ -1,4 +1,5 @@
 var _ = require('lodash');
+var colors = require('chalk');
 var crypto = require('crypto');
 var fs = require('fs').promises;
 var fspath = require('path');
@@ -14,6 +15,8 @@ var i3 = function I3() {
 		docker: {
 			strategy: 'lazy',
 			markerFile: '.i3-docker-build',
+			prefixStdout: '[docker]',
+			prefixStderr: colors.red('[docker]'),
 		},
 		input: [],
 		logging: {
