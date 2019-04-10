@@ -200,8 +200,9 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 			var dst = `${session.workspace.path}/${file}`;
 			switch (session.input.type) {
 				case 'citations':
-					i3.log(1, `Converting input citation library "${src}" -> "${dst}"`);
-					return reflib.promises.parseFile(src, i3.settings.input) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
+
+					i3.log(1, `Converting input citation library A "${src}" (${session.input.reflibInput ? JSON.stringify(session.input.reflibInput) : 'no settings'}) -> B "${dst}" (${session.input.reflib ? JSON.stringify(session.input.reflib) : 'no settings'})`);
+					return reflib.promises.parseFile(src, session.input.reflibInput)
 						.then(refs => {
 							if (i3.settings.merge.enabled) { // We will merge later - hold the parsed refs in memory
 								refs.forEach(ref => {
@@ -218,7 +219,10 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 							}
 							return refs;
 						})
-						.then(refs => reflib.promises.outputFile(dst, refs));
+						.then(refs => {
+							i3.log(3, 'Output file via Reflib file using settings', session.input.reflib || {});
+							reflib.promises.outputFile(dst, refs, session.input.reflib);
+						});
 					break;
 				case 'other':
 					i3.log(1, `Copying input file "${src}" -> "${dst}"`);
@@ -295,30 +299,46 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 			var dst = i3.settings.output[fileIndex];
 			switch (session.output.type) {
 				case 'citations':
-					i3.log(1, `Converting output citation library "${src}" -> "${dst}"`);
+					i3.log(1, `Converting output citation library C "${src}" (${session.output.reflib ? JSON.stringify(session.output.reflib) : 'no settings'}) -> D "${dst}" (${session.output.reflibOutput ? JSON.stringify(session.output.reflibOutput) : 'no settings'})`);
 
-					return reflib.promises.parseFile(src, i3.settings.outputTransform) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
+					return reflib.promises.parseFile(src, session.output.reflib) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
 						.then(refs => { // Attempt to merge?
 							if (session.input && i3.settings.merge.enabled) { // Perform merge
-								return refs.reduce((output, ref) => {
-									var matchingRef = inputRefs.get(i3.hashObject(_.pick(ref, i3.settings.merge.fields)));
-									if (matchingRef) {
-										output.push(_.merge(matchingRef, ref));
-									} else if (i3.settings.merge.nonMatch == 'remove') { // Non-matching reference - filter it out
-										i3.log(2, 'Cannot find reference in output - removing:', _.pick(ref, i3.settings.merge.fields));
-										// Do nothing
-									} else if (i3.settings.merge.nonMatch == 'keep') {
-										output.push(ref);
-									} else if (i3.settings.merge.nonMatch == 'keepDigest') {
-										output.push(_.pick(ref, i3.settings.merge.fields));
-									}
-									return output;
-								}, []);
+								switch (i3.settings.merge.method || 'join') {
+									case 'join':
+										return refs.reduce((output, ref) => {
+											var matchingRef = inputRefs.get(i3.hashObject(_.pick(ref, i3.settings.merge.fields)));
+											if (matchingRef) {
+												output.push(_.merge(matchingRef, ref));
+											} else if (i3.settings.merge.nonMatch == 'remove') { // Non-matching reference - filter it out
+												i3.log(2, 'Cannot find reference in output - removing:', _.pick(ref, i3.settings.merge.fields));
+												// Do nothing
+											} else if (i3.settings.merge.nonMatch == 'keep') {
+												output.push(ref);
+											} else if (i3.settings.merge.nonMatch == 'keepDigest') {
+												output.push(_.pick(ref, i3.settings.merge.fields));
+											}
+											return output;
+										}, []);
+									case 'ordered':
+										if (inputRefs.length != refs.length) throw new Error(`When using ordered merge stratergy the input and output reference counts must match. Given ${inputRefs.length} references, I3 got back ${refs.length} references`);
+										return refs.map((ref, refIndex) => {
+											var target = inputRefs[refIndex];
+											if (i3.settings.merge.path) { // Insert new data into a sub-key
+												_.set(ref, i3.settings.merge.path, target);
+											} else { // Merge with parent
+												_.merge(ref, target);
+											}
+											return ref;
+										})
+									default:
+										throw new Error('Unknown or unsupported merge method: "${i3.settings.merge.method}"');
+								}
 							} else {
 								return refs;
 							}
 						})
-						.then(refs => reflib.promises.outputFile(dst, refs, i3.settings.output));
+						.then(refs => reflib.promises.outputFile(dst, refs, session.output.reflibOutput));
 					break;
 				case 'other':
 					i3.log(1, `Copying output file "${src}" -> "${dst}"`);
