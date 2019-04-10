@@ -129,13 +129,13 @@ For example, in the following we customize the worker command line with the `foo
 
 ```json
 {
-  worker: {
-    command: [
+  "worker": {
+    "command": [
       "--always-passed-setting",
       "--foo=${settings.foo}",
       "${settings.verbose && '-v'}"
     ]
-    environment: {
+    "environment": {
       "SOME_SETTING": "Passed!",
       "IS_TALKATIVE": "${setting.verbose}"
     }
