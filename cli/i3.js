@@ -79,8 +79,8 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 		return session;
 	})
 	.then(session => {
-		i3.settings.input = _.castArray(i3.settings.input);
-		i3.settings.output = _.castArray(i3.settings.output);
+		i3.settings.input = _.castArray(session.cli.input);
+		i3.settings.output = _.castArray(session.cli.output);
 		i3.settings.verbose = parseInt(i3.settings.verbose);
 		if (session.cli.debugSettings) i3.log(0, 'Settings (final):', i3.settings)
 		return session;
