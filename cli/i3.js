@@ -102,7 +102,7 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 		} else {
 			i3.log(1, `Retrieving manifest from "${i3.settings.action}"`);
 			return i3.manifest.get(i3.settings.action)
-				.catch(e => { throw `Cannot find I3 compatible app at "${i3.settings.action}"` })
+				.catch(e => { throw new Error(`Cannot find I3 compatible app at "${i3.settings.action}"`) })
 				.then(manifest => {
 					_.set(session, 'manifest', manifest);
 					_.set(session, 'worker', {path: fspath.resolve(i3.settings.action)});
@@ -266,11 +266,11 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 			args: _([
 				'run', // Docker sub-command
 
-				// Docker options including mounts
-				session.manifest.worker.mount ? ['--volume', `${session.workspace.path}:${session.manifest.worker.mount}`] : '',
-
 				// Environment variables
 				entryEnv.length ? entryEnv : false,
+
+				// Docker options including mounts
+				session.manifest.worker.mount ? ['--volume', `${session.workspace.path}:${session.manifest.worker.mount}`] : '',
 
 				// Main container name
 				session.manifest.worker.container,

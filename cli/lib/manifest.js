@@ -18,7 +18,7 @@ var i3Manifest = function i3Manifest(i3) {
 				.then(contents => ({path: `${path}/${file}`, contents}))
 				.catch(e => Promise.resolve())
 		))
-			.then(files => files.find(f => f)) // Find first matching
+			.then(files => files.find(f => _.isObject(f))) // Find first matching
 			.then(file => ({path: file.path, ...JSON.parse(file.contents)}));
 
 
@@ -33,7 +33,7 @@ var i3Manifest = function i3Manifest(i3) {
 			.then(m => {
 				var errs = [];
 
-				if (!m) throw new Error('Not a JSON file');
+				if (!m) Promise.reject('Not a JSON file');
 
 				// Check for missing fields (dotted notation) {{{
 				['name', 'version', 'description', 'license', 'inputs', 'outputs', 'worker', 'worker.container']
@@ -42,16 +42,9 @@ var i3Manifest = function i3Manifest(i3) {
 					.forEach(text => err.push(text))
 				// }}}
 
-				// Check for empty input / output blocks {{{
-				['inputs', 'outputs']
-					.filter(field => !_.isObject(m[field]) || !_.isEmpty(m[field]))
-					.map(field => `${field} must be a non-empty array or object`)
-					.forEach(text => err.push(text))
-				// }}}
-
 				// Check inputs {{{
-				if (!_.isUndefined(m.inputs)) {
-					err.push('The input array must be specified, even if it is an empty array');
+				if (_.isUndefined(m.inputs)) {
+					errs.push('The input array must be specified, even if it is an empty array');
 				} else {
 					(_.castArray(m.inputs)).forEach((i, index) => {
 						['type'].forEach(f => {
@@ -69,13 +62,13 @@ var i3Manifest = function i3Manifest(i3) {
 				// }}}
 
 				// Check worker {{{
-				if (['docker', 'url'].includes(m.worker.type)) throw new Error('worker.container can only be "docker" or "url" at this point');
-				if (m.worker.type == 'docker' && !_.has(m, 'worker.container')) throw new Error('If worker.container == "docker", worker.container must be specified');
-				if (m.worker.type == 'url' && !_.has(m, 'worker.url')) throw new Error('If worker.container == "url", worker.url must be specified');
-				if (m.command && !_.isArray(m.command)) throw new Error('worker.command must be an array');
-				if (m.command && m.command.every(i => _.isString(i))) throw new Error('worker.command must be an array of strings only');
-				if (m.environment && !_.isPlainObject(m.environment)) throw new Error('worker.envionment must be an object');
-				if (m.environment && _.every(m.environment, (v, k) => _.isString(v) && _.isString(k))) throw new Error('worker.envionment must be an object of string key / values only');
+				if (!['docker', 'url'].includes(m.worker.type)) Promise.reject('worker.type can only be "docker" or "url" at this point');
+				if (m.worker.type == 'docker' && !_.has(m, 'worker.container')) Promise.reject('If worker.container == "docker", worker.container must be specified');
+				if (m.worker.type == 'url' && !_.has(m, 'worker.url')) Promise.reject('If worker.container == "url", worker.url must be specified');
+				if (m.command && !_.isArray(m.command)) Promise.reject('worker.command must be an array');
+				if (m.command && m.command.every(i => _.isString(i))) Promise.reject('worker.command must be an array of strings only');
+				if (m.environment && !_.isPlainObject(m.environment)) Promise.reject('worker.envionment must be an object');
+				if (m.environment && _.every(m.environment, (v, k) => _.isString(v) && _.isString(k))) Promise.reject('worker.envionment must be an object of string key / values only');
 				// }}}
 
 				// Check outputs {{{
@@ -86,9 +79,11 @@ var i3Manifest = function i3Manifest(i3) {
 				});
 				// }}}
 
-				if (errs.length) throw new Error(errs);
+				if (errs.length) {
+					i3.log(0, 'Manifest errors', errs);
+					Promise.reject(errs.join(', '));
+				}
 			})
-			.catch(e => _.castArray(e));
 
 	return manifest;
 };
