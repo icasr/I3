@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/icasr/I3/master/assets/logo/logo-grad-rounded-sm.png"/>
+</p>
+
 ICASR Integration Engine Whitepaper
 ===================================
 The ICASR Integration Engine (I3) is both a standard to define how individual Systematic Review Apps interact and a proof-of-concept implementation.
