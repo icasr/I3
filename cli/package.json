@@ -12,7 +12,7 @@
     "iee"
   ],
   "author": "Matt Carter <m@ttcarter.com>",
-  "license": "GPLv2",
+  "license": "LGPL-3.0-only",
   "engines": {
     "node": ">=10.10.0"
   },
