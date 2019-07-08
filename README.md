@@ -8,6 +8,7 @@ The ICASR Integration Engine (I3) is both a standard to define how individual Sy
 
 The I3 represents an attempt to define the integration between different Systematic Review apps with an aim to entirely automating the communication between these individual stages.
 
+[OSF Technical Standards Documentation](https://osf.io/3kd58)
 
 
 Contents:
