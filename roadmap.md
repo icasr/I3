@@ -7,7 +7,7 @@ It is understood that the I3 proof-of-concept is likely to take many iterations 
 Creation of CLI proof-of-concept (complete)
 -------------------------------------------
 The first step for the I3 project will be to create a command line interface (CLI) program which implements the base standard.
-Since CLI applications are easier to develop and debug this should test the [manifest specification](./manifest.md) against CREBP's existing modules before promoting the standard to a wider audience.
+Since CLI applications are easier to develop and debug this should test the [manifest specification](./manifest.md) against IEBH's existing modules before promoting the standard to a wider audience.
 
 This initial stage will include the task of creating the base project, implementing the manifest schema and testing against a selection of simple workers.
 
@@ -20,8 +20,8 @@ A proposed scenario would be as follows:
 
 | # | Scenario                                           | Tool                                                | Test purpose                                 | Input       | Output                           |
 |---|----------------------------------------------------|-----------------------------------------------------|----------------------------------------------|-------------|----------------------------------|
-| 1 | Deduplication                                      | [CREBP-Dedupe](https://github.com/CREBP/sra-dedupe) | Command line streaming as a block library    | EndNote XML | Deduplicated library, duplicates |
-| 2 | Spider references by one generation forward / back | [CREBP-Spider](https://github.com/CREBP/sra-spider) | Command line streaming individual references | EndNote XML | Original + Spidered references   |
+| 1 | Deduplication                                      | [IEBH-Dedupe](https://github.com/IEBH/sra-dedupe)   | Command line streaming as a block library    | EndNote XML | Deduplicated library, duplicates |
+| 2 | Spider references by one generation forward / back | [IEBH-Spider](https://github.com/IEBH/sra-spider)   | Command line streaming individual references | EndNote XML | Original + Spidered references   |
 | 3 | Screen the references                              | [Abstrackr](http://abstrackr.cebm.brown.edu)        | Support for legacy, self hosted tools        | CSV         | Partial CSV data                 |
 
 
@@ -40,10 +40,10 @@ We assume that a workspace already exists with `input-library.xml`.
 
 ```
 # Accept input-library.xml, dedupe and output to deduped.xml + dupes.xml
-i3 --input input-library.xml --output deduped.xml --output dupes.xml --action crebp/dedupe
+i3 --input input-library.xml --output deduped.xml --output dupes.xml --action iebh/dedupe
 
 # Input deduped.xml, spider references by one generation forward/back output as spidered.csv
-i3 --input deduped.xml --output spidered.csv --action crebp/spider --setting forward=1 -setting backward=1
+i3 --input deduped.xml --output spidered.csv --action iebh/spider --setting forward=1 -setting backward=1
 
 # Input spidered.csv, launch and wait for Abstrackr functionality to compete, output as screened.xml EndNote library
 i3 --input spidered.csv --output screened.xml --action brown/abstrackr
@@ -52,7 +52,7 @@ i3 --input spidered.csv --output screened.xml --action brown/abstrackr
 **Notes:**
 
 * The long form options (e.g. `--input`) are used in the above for readability, short form options (`--input` or `-i`) would be available also
-* The named action (e.g. `--action crebp/dedupe`) corresponds to a registered Docker image which would contain a [manifest](./manifest.md) indicating how the container should be built and input/output processed
+* The named action (e.g. `--action iebh/dedupe`) corresponds to a registered Docker image which would contain a [manifest](./manifest.md) indicating how the container should be built and input/output processed
 * As the deduplication step provides two outputs the `--output` argument specifies two output filenames
 
 

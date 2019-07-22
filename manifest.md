@@ -12,25 +12,25 @@ Example
 
 ```json
 {
-  "name": "crebp-citation-dedupe",
+  "name": "iebh-citation-dedupe",
   "version": "1.0.0",
   "description": "Simple deduper tool for citation libraries",
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CREBP/sra-dedupe.git"
+    "url": "git+https://github.com/IEBH/sra-dedupe.git"
   },
   "keywords": [
-    "crebp",
+    "iebh",
     "sra",
     "dedupe"
   ],
   "author": "Matt Carter <m@ttcarter.com> (https://github.com/hash-bang)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/CREBP/sra-dedupe/issues"
+    "url": "https://github.com/IEBH/sra-dedupe/issues"
   },
-  "homepage": "https://github.com/CREBP/sra-dedupe#readme",
+  "homepage": "https://github.com/IEBH/sra-dedupe#readme",
   "engines": {
     "node": ">=6.0.0"
   },
@@ -52,7 +52,7 @@ Example
   ],
   "worker": {
     "type": "docker",
-    "container": "crebp/citation-dedupe",
+    "container": "iebh/citation-dedupe",
     "mount": "/app"
   },
   "outputs": [
