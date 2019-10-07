@@ -45,7 +45,7 @@ Example
   },
   "inputs": [
     {
-      "type": "citations",
+      "type": "references",
       "format": "json",
       "filename": "input.json"
     }
@@ -57,7 +57,7 @@ Example
   },
   "outputs": [
     {
-      "type": "citations",
+      "type": "references",
       "format": "json",
       "filename": "output.json"
     }
@@ -103,7 +103,7 @@ Manifest specification
 | `worker.command`      | `array`          |                             | An array of command line options passed to the Docker container                                                                                          |
 | `worker.environment`  | `object <string>` |                            | An object containing environment variables to populate and pass to the Docker container                                                                  |
 | `outputs`             | `array` or `object`  |                         | Array of valid output formats the app accepts or a single output object                                                                                  |
-| `outputs.[].type`     | `string`         | Required, Enum('citations', 'other') | The output type of the worker                                                                                                                   |
+| `outputs.[].type`     | `string`         | Required, Enum('references', 'other') | The output type of the worker                                                                                                                   |
 | `outputs.[].format`   | `string`         | Enum(RefLib formats)        | The RefLib compatible format that the worker outputs                                                                                                     |
 | `outputs.[].filename` | `string`         |                             | The filename of the output data                                                                                                                          |
 | `outputs.[].download` | `string`         | URL                         | An API endpoint that the worker will post data to when complete                                                                                          |

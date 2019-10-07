@@ -18,17 +18,17 @@ An App that runs as a web server, exposes an endpoint to accept a citation libra
   },
   "inputs": [
     {
-      "type": "citations",
+      "type": "references",
       "format": "json"
     }
   ],
   "worker": {
     "type": "url",
-    "url": "http://acme.com/process/citations"
+    "url": "http://acme.com/process/references"
   },
   "outputs": [
     {
-      "type": "citations",
+      "type": "references",
       "format": "json"
     }
   ],
@@ -52,7 +52,7 @@ An App that runs within a Docker container, accepts input file (`input.json`) an
   },
   "inputs": [
     {
-      "type": "citations",
+      "type": "references",
       "format": "json",
       "filename": "input.json"
     }
@@ -64,7 +64,7 @@ An App that runs within a Docker container, accepts input file (`input.json`) an
   },
   "outputs": [
     {
-      "type": "citations",
+      "type": "references",
       "format": "json",
       "filename": "output.json"
     }
@@ -90,7 +90,7 @@ An app that runs a web facing interface, accepts a CSV POSTed to a URL, works wi
   },
   "inputs": [
     {
-      "type": "citations",
+      "type": "references",
       "format": "csv",
       "filename": "library.json",
       "upload": "http://${server}:${port}/import"
@@ -103,7 +103,7 @@ An app that runs a web facing interface, accepts a CSV POSTed to a URL, works wi
   },
   "outputs": [
     {
-      "type": "citations",
+      "type": "references",
       "format": "csv",
       "download": "http://${server}:${port}/api/export",
     }
