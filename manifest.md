@@ -89,10 +89,9 @@ Manifest specification
 | `engines`             | `object`         |                             | Details about the execution environment the App needs to run under. These take the form of the execution context and SemVer version                      |
 | `settings`            | `string` or `object` | Relative path or URL    | Input settings to display to the user when queuing up the app for execution                                                                              |
 | `inputs`              | `array`  or `object` |                         | Array of valid input formats the app accepts or a single input object                                                                                    |
-| `inputs.[].accepts`   | `array <string>` | Array of globs              | If `(input.type == 'other')` this is an array of acceptable file globs                                                                                   |
-| `inputs.[].filename`  | `string`         |                             | The single filename to store the input as (if `worker.type == 'docker'`)                                                                                 |
-| `inputs.[].upload`    | `string`         | URL                         | A URL endpoint which accepts multipart-mime uploads of files (if `worker.type == 'url'`), if `.filename` is also specified this is used to name the file |
-| `inputs.[].type`      | `string`         | Required, Enum('citations', 'other') | What inputs are accepted for this input type                                                                                                    |
+| `inputs.[].accepts`   | `array <string>` | Array of globs              | An [accept compatible](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/file#accept) list of files that can take this input slot          |
+| `inputs.[].filename`  | `string`         |                             | The default filename to store the input as (if `worker.type == 'docker'`)                                                                                |
+| `inputs.[].type`      | `string`         | Required, Enum('other', 'text', 'spreadhseet', 'references') | What meta input types are accepted for this input slot                                                                  |
 | `inputs.[].format`    | `string`         | Enum(RefLib formats)        | The RefLib compatible format that the worker accepts                                                                                                     |
 | `worker`              | `object`         |                             | Details on how the worker functions                                                                                                                      |
 | `worker.type`         | `string`         | Enum('url', 'docker')       | How to handle worker process                                                                                                                             |
@@ -103,7 +102,7 @@ Manifest specification
 | `worker.command`      | `array`          |                             | An array of command line options passed to the Docker container                                                                                          |
 | `worker.environment`  | `object <string>` |                            | An object containing environment variables to populate and pass to the Docker container                                                                  |
 | `outputs`             | `array` or `object`  |                         | Array of valid output formats the app accepts or a single output object                                                                                  |
-| `outputs.[].type`     | `string`         | Required, Enum('references', 'other') | The output type of the worker                                                                                                                   |
+| `outputs.[].type`     | `string`         | Required, Enum('other', 'text', 'spreadsheet', 'references') | The output type of the worker                                                                                           |
 | `outputs.[].format`   | `string`         | Enum(RefLib formats)        | The RefLib compatible format that the worker outputs                                                                                                     |
 | `outputs.[].filename` | `string`         |                             | The filename of the output data                                                                                                                          |
 | `outputs.[].download` | `string`         | URL                         | An API endpoint that the worker will post data to when complete                                                                                          |
@@ -134,7 +133,7 @@ For example, in the following we customize the worker command line with the `foo
       "--always-passed-setting",
       "--foo=${settings.foo}",
       "${settings.verbose && '-v'}"
-    ]
+    ],
     "environment": {
       "SOME_SETTING": "Passed!",
       "IS_TALKATIVE": "${setting.verbose}"

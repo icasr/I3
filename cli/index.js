@@ -81,7 +81,7 @@ var i3 = function I3() {
 
 	/**
 	* Returns the SHA1 of an object reference
-	* This is used as a utility function when stashing citations for later retrieval
+	* This is used as a utility function when stashing references for later retrieval
 	* @param {Object} obj The object to hash
 	* @returns {string} The SHA1 hash of the object
 	*/
@@ -98,13 +98,13 @@ var i3 = function I3() {
 
 
 	/**
-	* Return a human readable citation - or as close as we can get with the information to hand
+	* Return a human readable reference - or as close as we can get with the information to hand
 	* @param {Object} ref The reference to cite, following the RefLib standards
 	* @param {Object} [options] Additional options to pass
 	* @param {boolean} [options.html=false] Format the reference using HTML
 	* @returns {string} The human readable reference
 	*/
-	i3.readableCitation = (ref, options) => {
+	i3.readableReference = (ref, options) => {
 		var settings = {
 			html: false,
 			...options,
@@ -112,7 +112,7 @@ var i3 = function I3() {
 
 		var out = [];
 
-		// NOTE: This is the Harvard citation style
+		// NOTE: This is the Harvard reference style
 		if (ref.recNumber) out.push(`#${ref.recNumber}`);
 		if (ref.authors) out.push(_.isArray(ref.authors) ? ref.authors.join(', ') : ref.authors);
 		if (ref.year) out.push(`(${ref.year})`);

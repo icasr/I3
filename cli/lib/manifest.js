@@ -51,9 +51,9 @@ var i3Manifest = function i3Manifest(i3) {
 							if (!_.has(i, f)) err.push(`Input #${index} should have a '${f}' field`);
 						})
 
-						if (i.type == 'citations') {
-							if (!_.has(i, 'filename')) err.push(`Input #${index} should specify a filename if the type is "citations"`);
-							if (!_.has(i, 'format')) err.push(`Input #${index} should specify a citation library format`);
+						if (i.type == 'references') {
+							if (!_.has(i, 'filename')) err.push(`Input #${index} should specify a filename if the type is "references"`);
+							if (!_.has(i, 'format')) err.push(`Input #${index} should specify a reference library format`);
 						} else if (i.type == 'other') {
 							if (!_.has(i, 'accepts')) err.push(`Input #${index} should specify a glob or array of globs if the type is "other"`);
 						}

@@ -142,7 +142,7 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 		session.input = inputs.find((i, index) => {
 			var matches = false;
 			switch (i.type) {
-				case 'citations':
+				case 'references':
 					matches = (
 						reflib.supported.find(rl => rl.id == i.format) // Find first supported Reflib format
 						&& i3.settings.input.length == (_.isString(i.filename) ? 1 : i.filename.length)
@@ -164,7 +164,7 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 		session.output = outputs.find((i, index) => {
 			var matches = false;
 			switch (i.type) {
-				case 'citations':
+				case 'references':
 					matches = (
 						reflib.supported.find(rl => rl.id == i.format) // Find first supported Reflib format
 						&& i3.settings.output.length == (_.isString(i.filename) ? 1 : i.filename.length)
@@ -199,19 +199,19 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 			var src = i3.settings.input[fileIndex];
 			var dst = `${session.workspace.path}/${file}`;
 			switch (session.input.type) {
-				case 'citations':
+				case 'references':
 
-					i3.log(1, `Converting input citation library A "${src}" (${session.input.reflibInput ? JSON.stringify(session.input.reflibInput) : 'no settings'}) -> B "${dst}" (${session.input.reflib ? JSON.stringify(session.input.reflib) : 'no settings'})`);
+					i3.log(1, `Converting input reference library A "${src}" (${session.input.reflibInput ? JSON.stringify(session.input.reflibInput) : 'no settings'}) -> B "${dst}" (${session.input.reflib ? JSON.stringify(session.input.reflib) : 'no settings'})`);
 					return reflib.promises.parseFile(src, session.input.reflibInput)
 						.then(refs => {
 							if (i3.settings.merge.enabled) { // We will merge later - hold the parsed refs in memory
 								refs.forEach(ref => {
 									var refHash = i3.hashObject(_.pick(ref, i3.settings.merge.fields));
 									if (i3.settings.merge.dupes == 'warn' && inputRefs.has(refHash)) {
-										i3.log(0, 'Duplicate citation warning:', i3.readableCitation(ref));
+										i3.log(0, 'Duplicate reference warning:', i3.readableReference(ref));
 									} else if (i3.settings.merge.dupes == 'stop' && inputRefs.has(refHash)) {
 										i3.log(0, 'Input contains duplicates. Deduplicate before contunining');
-										i3.log(0, 'Stopped on citation:', i3.readableCitation(ref));
+										i3.log(0, 'Stopped on reference:', i3.readableReference(ref));
 										throw new Error('Duplicates');
 									}
 									inputRefs.set(refHash, ref);
@@ -298,8 +298,8 @@ Promise.resolve({}) // Setup waterfall session (gets populated at each successiv
 			var src = `${session.workspace.path}/${file}`;
 			var dst = i3.settings.output[fileIndex];
 			switch (session.output.type) {
-				case 'citations':
-					i3.log(1, `Converting output citation library C "${src}" (${session.output.reflib ? JSON.stringify(session.output.reflib) : 'no settings'}) -> D "${dst}" (${session.output.reflibOutput ? JSON.stringify(session.output.reflibOutput) : 'no settings'})`);
+				case 'references':
+					i3.log(1, `Converting output reference library C "${src}" (${session.output.reflib ? JSON.stringify(session.output.reflib) : 'no settings'}) -> D "${dst}" (${session.output.reflibOutput ? JSON.stringify(session.output.reflibOutput) : 'no settings'})`);
 
 					return reflib.promises.parseFile(src, session.output.reflib) // FIXME: This is going to use a ton of memory - needs converting to a stream or something - MC 2018-12-14
 						.then(refs => { // Attempt to merge?
