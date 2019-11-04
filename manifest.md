@@ -13,9 +13,12 @@ Example
 ```json
 {
   "name": "iebh-citation-dedupe",
+  "title": "IEBH Citation Deduper",
   "version": "1.0.0",
   "description": "Simple deduper tool for citation libraries",
-  "main": "index.js",
+  "assets": {
+    "logo": "logo.svg"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/IEBH/sra-dedupe.git"
@@ -52,8 +55,7 @@ Example
   ],
   "worker": {
     "type": "docker",
-    "container": "iebh/citation-dedupe",
-    "mount": "/app"
+    "base": "iebh/citation-dedupe"
   },
   "outputs": [
     {
@@ -74,8 +76,12 @@ Manifest specification
 | Key                   | Type             | Validation                  | Description                                                                                                                                              |
 |-----------------------|------------------|-----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `name`                | `string`         | Required                    | Short, alpha numeric (no space, hyphens + underscore), name for the app                                                                                  |
+| `title`               | `string`         |                             | A more human friendly version of `name`, if omitted the `name` field is used instead                                                                     |
 | `version`             | `string`         | Required                    | [SemVer compatible](https://semver.org) version of the App                                                                                               |
 | `description`         | `string`         | Required                    | Human readable description of the tool. Ideally a simple description of around one paragraph                                                             |
+| `public`              | `boolean`        | Default(true)               | If false, the app will not show up in search results or be available within the UI, this is intended for debugging only                                  |
+| `assets`              | `object`         |                             | Optional list of assets to include in the manifest listing                                                                                               |
+| `assets.logo`         | `string`         | Valid file                  | Logo to use when displaying the listing                                                                                                                  |
 | `main`                | `string`         | Required, Valid file        | Pointer to the entry point of the app                                                                                                                    |
 | `repository`          | `object`         |                             | Repository information                                                                                                                                   |
 | `repository.type`     | `string`         | Enum('git')                 | The repository type                                                                                                                                      |
